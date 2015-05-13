@@ -13,6 +13,9 @@ from PyQt4.QtGui import *
 import subprocess
 
 class ChessInterface(QtGui.QWidget):
+    def initBoard():
+        board = np.zeros(shape=(8,8))
+        return board
     def mousePressEvent(self, QMouseEvent):
         print("coming soon")
     def __init__(self):
@@ -20,6 +23,7 @@ class ChessInterface(QtGui.QWidget):
         self.initUI()                               
     def initUI(self):
         print("coming soon")
+        board=self.initBoard()
 
 def main():
     app = QtGui.QApplication(sys.argv)
