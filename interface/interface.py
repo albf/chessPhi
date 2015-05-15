@@ -27,6 +27,8 @@ king=1
 #interface class block
 
 class ChessInterface(QtGui.QWidget):
+    grid=[]
+    board = np.zeros(shape=(8,8))
     def img_name(self,i,j,piece):
         if(i%2==0 and j%2==0):
             if(piece==0):
@@ -119,7 +121,7 @@ class ChessInterface(QtGui.QWidget):
     def on_click(self):
         print("coming soon")
     def initBoard(self):
-        board = np.zeros(shape=(8,8))
+        board=self.board
         board[0][0]=7
         board[7][0]=-7
         board[0][1]=5
@@ -141,16 +143,34 @@ class ChessInterface(QtGui.QWidget):
             board[6][i]=-9
         return board
     def mousePressEvent(self, QMouseEvent):
-        print("coming soon")
+        posy=QMouseEvent.pos().x()
+        posx=QMouseEvent.pos().y()
+        btnx = 8 * posx / 400
+        btny = 8 * posy / 400
+        w = QWidget()
+        res=QMessageBox.question(w,"Action","Move or Remove","Move","Remove","Cancel")
+        if(res==1):
+            self.board[btnx][btny]=0
+            label = QLabel()
+            pixmap=QPixmap(self.img_name(btnx,btny,self.board[btnx][btny]))
+            label.setPixmap(pixmap)
+            label.show()
+            self.grid.addWidget(label,btnx,btny)
+
+                
+        #else:
+
+        #print(res)
+
+
     def __init__(self):
         super(ChessInterface, self).__init__()
         self.initUI()                               
     def initUI(self):
         board=self.initBoard()
         #print(board)
-
-        grid = QtGui.QGridLayout()
-        self.setLayout(grid)
+        self.grid=QtGui.QGridLayout()
+        self.setLayout(self.grid)
 
         for i in xrange(0,8):
             for j in xrange(0,8):
@@ -158,7 +178,7 @@ class ChessInterface(QtGui.QWidget):
                 pixmap=QPixmap(self.img_name(i,j,board[i][j]))
                 label.setPixmap(pixmap)
                 label.show()
-                grid.addWidget(label,i,j)
+                self.grid.addWidget(label,i,j)
     
 
         w = QWidget()
@@ -166,15 +186,15 @@ class ChessInterface(QtGui.QWidget):
         btn.setToolTip('Click to Exit!')
         btn.clicked.connect(exit)
         btn.resize(btn.sizeHint())
-        grid.addWidget(btn,0,8)
+        self.grid.addWidget(btn,0,8)
         btn=QPushButton('Tip!',w)
         btn.setToolTip('Click to get a hint!')
         btn.clicked.connect(self.on_click)
         btn.resize(btn.sizeHint())
-        grid.addWidget(btn,1,8)
+        self.grid.addWidget(btn,1,8)
 
-        grid.setHorizontalSpacing(0)
-        grid.setVerticalSpacing(0)
+        self.grid.setHorizontalSpacing(0)
+        self.grid.setVerticalSpacing(0)
         self.setWindowTitle("Chess")
         self.show()
 
