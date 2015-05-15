@@ -28,6 +28,8 @@ king=1
 
 class ChessInterface(QtGui.QWidget):
     grid=[]
+    oldx=-1
+    oldy=-1
     board = np.zeros(shape=(8,8))
     def img_name(self,i,j,piece):
         if(i%2==0 and j%2==0):
@@ -149,6 +151,27 @@ class ChessInterface(QtGui.QWidget):
         btny = 8 * posy / 400
         w = QWidget()
         res=QMessageBox.question(w,"Action","Move or Remove","Move","Remove","Cancel")
+        if(res==0):
+            if(self.oldx!=-1 and self.oldy!=-1):
+                self.board[btnx][btny]=self.board[self.oldx][self.oldy]
+                self.board[self.oldx][self.oldy]=0
+                label = QLabel()
+                pixmap=QPixmap(self.img_name(self.oldx,self.oldy,self.board[self.oldx][self.oldy]))
+                label.setPixmap(pixmap)
+                label.show()
+                self.grid.addWidget(label,self.oldx,self.oldy)
+
+                label = QLabel()
+                pixmap=QPixmap(self.img_name(btnx,btny,self.board[btnx][btny]))
+                label.setPixmap(pixmap)
+                label.show()
+                self.grid.addWidget(label,btnx,btny)
+                self.oldx=-1
+                self.oldy=-1
+            else:
+                self.oldx=btnx
+                self.oldy=btny
+        
         if(res==1):
             self.board[btnx][btny]=0
             label = QLabel()
@@ -156,13 +179,7 @@ class ChessInterface(QtGui.QWidget):
             label.setPixmap(pixmap)
             label.show()
             self.grid.addWidget(label,btnx,btny)
-
-                
-        #else:
-
-        #print(res)
-
-
+    
     def __init__(self):
         super(ChessInterface, self).__init__()
         self.initUI()                               
