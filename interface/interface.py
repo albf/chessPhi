@@ -27,8 +27,118 @@ king=1
 #interface class block
 
 class ChessInterface(QtGui.QWidget):
-    def initBoard():
+    def img_name(self,i,j,piece):
+        if(i%2==0 and j%2==0):
+            if(piece==0):
+                return "images/white.png"
+            else:
+                if(piece==9):
+                    return "images/pawn_black_on_white.png"
+                if(piece==-9):
+                    return "images/pawn_white_on_white.png"
+                if(piece==7):
+                    return "images/castle_black_on_white.png"
+                if(piece==-7):
+                    return "images/castle_white_on_white.png"
+                if(piece==5):
+                    return "images/knight_black_on_white.png"
+                if(piece==-5):
+                    return "images/knight_white_on_white.png"
+                if(piece==3):
+                    return "images/bishop_black_on_white.png"
+                if(piece==-3):
+                    return "images/bishop_white_on_white.png"
+                if(piece==2):
+                    return "images/queen_black_on_white.png"
+                if(piece==-2):
+                    return "images/queen_white_on_white.png"
+                if(piece==1):
+                    return "images/king_black_on_white.png"
+                if(piece==-1):
+                    return "images/king_white_on_white.png"
+
+        elif(i%2==1 and j%2==1):
+            if(piece==0):
+                return "images/white.png"
+            else:
+                if(piece==9):
+                    return "images/pawn_black_on_white.png"
+                if(piece==-9):
+                    return "images/pawn_white_on_white.png"
+                if(piece==7):
+                    return "images/castle_black_on_white.png"
+                if(piece==-7):
+                    return "images/castle_white_on_white.png"
+                if(piece==5):
+                    return "images/knight_black_on_white.png"
+                if(piece==-5):
+                    return "images/knight_white_on_white.png"
+                if(piece==3):
+                    return "images/bishop_black_on_white.png"
+                if(piece==-3):
+                    return "images/bishop_white_on_white.png"
+                if(piece==2):
+                    return "images/queen_black_on_white.png"
+                if(piece==-2):
+                    return "images/queen_white_on_white.png"
+                if(piece==1):
+                    return "images/king_black_on_white.png"
+                if(piece==-1):
+                    return "images/king_white_on_white.png"
+
+        else:
+            if(piece==0):
+                return "images/black.png"
+            else:
+                if(piece==9):
+                    return "images/pawn_black_on_black.png"
+                if(piece==-9):
+                    return "images/pawn_white_on_black.png"
+                if(piece==7):
+                    return "images/castle_black_on_black.png"
+                if(piece==-7):
+                    return "images/castle_white_on_black.png"
+                if(piece==5):
+                    return "images/knight_black_on_black.png"
+                if(piece==-5):
+                    return "images/knight_white_on_black.png"
+                if(piece==3):
+                    return "images/bishop_black_on_black.png"
+                if(piece==-3):
+                    return "images/bishop_white_on_black.png"
+                if(piece==2):
+                    return "images/queen_black_on_black.png"
+                if(piece==-2):
+                    return "images/queen_white_on_black.png"
+                if(piece==1):
+                    return "images/king_black_on_black.png"
+                if(piece==-1):
+                    return "images/king_white_on_black.png"
+
+
+    def on_click(self):
+        print("coming soon")
+    def initBoard(self):
         board = np.zeros(shape=(8,8))
+        board[0][0]=7
+        board[7][0]=-7
+        board[0][1]=5
+        board[7][1]=-5
+        board[0][2]=3
+        board[7][2]=-3
+        board[0][3]=2
+        board[7][3]=-2
+        board[0][4]=1
+        board[7][4]=-1
+        board[0][5]=3
+        board[7][5]=-3
+        board[0][6]=5
+        board[7][6]=-5
+        board[0][7]=7
+        board[7][7]=-7
+        for i in xrange(0,8):
+            board[1][i]=9
+            board[6][i]=-9
         return board
     def mousePressEvent(self, QMouseEvent):
         print("coming soon")
@@ -36,9 +146,37 @@ class ChessInterface(QtGui.QWidget):
         super(ChessInterface, self).__init__()
         self.initUI()                               
     def initUI(self):
-        print("coming soon")
         board=self.initBoard()
+        #print(board)
 
+        grid = QtGui.QGridLayout()
+        self.setLayout(grid)
+
+        for i in xrange(0,8):
+            for j in xrange(0,8):
+                label = QLabel()
+                pixmap=QPixmap(self.img_name(i,j,board[i][j]))
+                label.setPixmap(pixmap)
+                label.show()
+                grid.addWidget(label,i,j)
+    
+
+        w = QWidget()
+        btn=QPushButton('Quit!',w)
+        btn.setToolTip('Click to Exit!')
+        btn.clicked.connect(exit)
+        btn.resize(btn.sizeHint())
+        grid.addWidget(btn,0,8)
+        btn=QPushButton('Tip!',w)
+        btn.setToolTip('Click to get a hint!')
+        btn.clicked.connect(self.on_click)
+        btn.resize(btn.sizeHint())
+        grid.addWidget(btn,1,8)
+
+        grid.setHorizontalSpacing(0)
+        grid.setVerticalSpacing(0)
+        self.setWindowTitle("Chess")
+        self.show()
 
 # main and other python stuffs
 def main():
