@@ -145,14 +145,22 @@ class ChessInterface(QtGui.QWidget):
             board[6][i]=-9
         return board
     def mousePressEvent(self, QMouseEvent):
+
         posy=QMouseEvent.pos().x()
         posx=QMouseEvent.pos().y()
         btnx = 8 * posx / 400
         btny = 8 * posy / 400
+
+        if(btnx>7 or btny>7):
+            return
+
         w = QWidget()
         res=QMessageBox.question(w,"Action","Move or Remove","Move","Remove","Cancel")
         if(res==0):
+
             if(self.oldx!=-1 and self.oldy!=-1):
+
+
                 self.board[btnx][btny]=self.board[self.oldx][self.oldy]
                 self.board[self.oldx][self.oldy]=0
                 label = QLabel()
@@ -179,6 +187,12 @@ class ChessInterface(QtGui.QWidget):
             label.setPixmap(pixmap)
             label.show()
             self.grid.addWidget(label,btnx,btny)
+            self.oldy=-1
+            self.oldx=-1
+
+        if(res==2):
+            self.oldy=-1
+            self.oldx=-1
     
     def __init__(self):
         super(ChessInterface, self).__init__()
