@@ -765,24 +765,24 @@ double mount_pieces(int F[8][8], int P[num_pieces][num_col], int player) {
 
 // Update score table and alpha/beta values. 
 // Return -1 if alpha-beta condition wasn't matched, 1 otherwise.
-int updateScore(double * best_score, int depth, int score, double *alpha, double *beta) {
+int updateScore(double * best_score, int depth, int score) {
     // Even
-    if((depth%2 == 0)) {
+    if((depth%2) == 0) {
         if(score > best_score[depth]) {
-            *alpha = score;
+            best_score[depth] = score;  // best_score[depth] = alpha
         }
-        if(beta > alpha){
-            return 1;
+        if((depth>0) && (best_score[depth-1] > best_score[depth])){   // beta > alpha
+            return 1;       // beta cut-off
         }
     }
     
     // Odd
     else {
-        if(score > best_score[depth]) {
-            *beta = score;
+        if(score < best_score[depth]) {
+            best_score[depth] = score;  // best_score[depth] = beta 
         }
-        if(beta < alpha){
-            return 1;
+        if((depth>0) &&(best_score[depth] < best_score[depth-1])){   // beta < alpha
+            return 1;       // alpha cut-off
         }
     }
     
@@ -794,39 +794,44 @@ int AlphaBeta(int F[8][8], int max_depth, int player) {
     struct queue Q;
     int P[num_pieces][num_col];
     int depth = 0, i, found_move, u_ret=-1;
-    double alpha, beta, score;
-    double * best_score;
+    double score;              
+    double * best_score;                    // Bestscore = [alfa, beta, alfa, beta]
     int * mov_counter;
     struct moviment * next;
     struct moviment * mov;
     
     score = mount_pieces(F, P, player);     // Mount pieces table.
     init_queue(&Q);                         // Init queue
-    best_score = (double *) malloc (sizeof(double)*max_depth);
+    best_score = (double *) malloc (sizeof(double)*max_depth); 
     mov_counter = (int *) malloc (sizeof(int)*max_depth);
     
-    for(i=0; i<max_depth; i++) {
-        best_score[i] = -999999;    // -inf. 
+    for(i=0; i<max_depth; i++) {            // Alpha=-inf ; Beta = inf
+        if((i%2)==0) {
+            best_score[i] = -999999;        // -inf. 
+        }
+        else {
+            best_score[i] = 999999;
+        }
     }
     
     while(Q.pop_pos >= 0) {
         found_move = -1;
-        if((depth <= max_depth)&&(u_ret<0)) {                   // If can expand, try!
+        if((depth < max_depth)&&(u_ret<0)) {                    // If can expand, try!
             next = alloc_mov(&Q);                               // Get new move.
             find_nth_move(F, P, mov_counter[depth], next);      // Find next move.
             mov_counter[depth]++;                               // Update depth counter.
             if(next->index >= 0) {                              // If valid move was found.
                 score += apply_move(F,P,next);
-                depth++;
                 found_move = 1;
-                u_ret = updateScore(best_score, depth, score, &alpha, &beta);
+                u_ret = updateScore(best_score, depth, score);
+                depth++;
             }
         }
         if(found_move < 0) {    // If valid move wasn't found or max_depth was reached.
             mov = pop_mov(&Q);
             score += undo_move(F,P,mov);
+            u_ret = updateScore(best_score, depth, score);
             depth--;
-            u_ret = updateScore(best_score, depth, score, &alpha, &beta);
         }
     }
     
@@ -838,7 +843,7 @@ int AlphaBeta(int F[8][8], int max_depth, int player) {
 
 int main() {
     int i, j;
-    int player = -1, max_depth = 5;
+    int player = -1, max_depth = 1;
     int F[8][8];
 
     for(i=0; i<8; i++) {
