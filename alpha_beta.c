@@ -74,7 +74,7 @@ void assign_size(struct queue * Q) {
 struct moviment * alloc_mov(struct queue * Q) {
 	assign_size(Q);
 	Q->pop_pos++;
-	return Q->mov[Q->pop_pos-1];
+	return &(Q->mov[Q->pop_pos-1]);
 }
 
 // Pop latest appended mov.
@@ -88,7 +88,7 @@ struct moviment * pop_mov(struct queue * Q) {
 }
 
 // Undo a given move, returns difference in score.
-void undo_move(int **F, int **P, struct moviment * mov) {
+int undo_move(int **F, int **P, struct moviment * mov) {
 	P[mov->index][3] = mov->l_pos_x;
 	P[mov->index][4] = mov->l_pos_y;
 	F[mov->l_pos_x][mov->l_pos_y] = P[mov->index][1];
@@ -101,7 +101,7 @@ void undo_move(int **F, int **P, struct moviment * mov) {
 }
 
 // Apply a given move, return difference in score.
-void apply_move(int **F, int **P, struct moviment * mov) {
+int apply_move(int **F, int **P, struct moviment * mov) {
 	P[mov->index][3] = mov->pos_x;
 	P[mov->index][4] = mov->pos_y;
 	F[mov->pos_x][mov->pos_y] = P[mov->index][1];
@@ -240,7 +240,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 		// White knights
 		else if (P[i][1] == -knight) {
 			// Up options
-			if(((y+2)<8)&&((x-1)>=0)&&(F[x-1][y+2]>=0) {
+			if(((y+2)<8)&&((x-1)>=0)&&(F[x-1][y+2]>=0)) {
 				if(m_c == n) {
 					ret->pos_x = x-1;
 					ret->pos_y = y+2;
@@ -248,7 +248,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 				}
 				m_c++;
 			}
-			if(((y+2)<8)&&((x+1)<8)&&(F[x+1][y+2]>=0) {
+			if(((y+2)<8)&&((x+1)<8)&&(F[x+1][y+2]>=0)) {
 				if(m_c == n) {
 					ret->pos_x = x+1;
 					ret->pos_y = y+2;
@@ -258,7 +258,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 			}
 			
 			// Down options
-			if(((y-2)>=0)&&((x-1)>=0)&&(F[x-1][y-2]>=0) {
+			if(((y-2)>=0)&&((x-1)>=0)&&(F[x-1][y-2]>=0)) {
 				if(m_c == n) {
 					ret->pos_x = x-1;
 					ret->pos_y = y-2;
@@ -266,7 +266,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 				}
 				m_c++;
 			}
-			if(((y-2)>=0)&&((x+1)<8)&&(F[x+1][y-2]>=0) {
+			if(((y-2)>=0)&&((x+1)<8)&&(F[x+1][y-2]>=0)) {
 				if(m_c == n) {
 					ret->pos_x = x+1;
 					ret->pos_y = y-2;
@@ -276,7 +276,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 			}
 			
 			// Left options
-			if(((y-1)>=0)&&((x-2)>=0)&&(F[x-2][y-1]>=0) {
+			if(((y-1)>=0)&&((x-2)>=0)&&(F[x-2][y-1]>=0)) {
 				if(m_c == n) {
 					ret->pos_x = x-2;
 					ret->pos_y = y-1;
@@ -284,7 +284,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 				}
 				m_c++;
 			}
-			if(((y+1)<8)&&((x-2)>=0)&&(F[x-2][y+1]>=0) {
+			if(((y+1)<8)&&((x-2)>=0)&&(F[x-2][y+1]>=0)) {
 				if(m_c == n) {
 					ret->pos_x = x-2;
 					ret->pos_y = y+1;
@@ -294,7 +294,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 			}
 			
 			// Right options
-			if(((y-1)>=0)&&((x+2)<8)&&(F[x+2][y-1]>=0) {
+			if(((y-1)>=0)&&((x+2)<8)&&(F[x+2][y-1]>=0)) {
 				if(m_c == n) {
 					ret->pos_x = x+2;
 					ret->pos_y = y-1;
@@ -302,7 +302,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 				}
 				m_c++;
 			}
-			if(((y+1)<8)&&((x+2)<8)&&(F[x+2][y+1]>=0) {
+			if(((y+1)<8)&&((x+2)<8)&&(F[x+2][y+1]>=0)) {
 				if(m_c == n) {
 					ret->pos_x = x+2;
 					ret->pos_y = y+1;
@@ -500,7 +500,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 		// Black knights
 		else if (P[i][1] == knight) {
 			// Up options
-			if(((y+2)<8)&&((x-1)>=0)&&(F[x-1][y+2]<=0) {
+			if(((y+2)<8)&&((x-1)>=0)&&(F[x-1][y+2]<=0)) {
 				if(m_c == n) {
 					ret->pos_x = x-1;
 					ret->pos_y = y+2;
@@ -508,7 +508,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 				}
 				m_c++;
 			}
-			if(((y+2)<8)&&((x+1)<8)&&(F[x+1][y+2]<=0) {
+			if(((y+2)<8)&&((x+1)<8)&&(F[x+1][y+2]<=0)) {
 				if(m_c == n) {
 					ret->pos_x = x+1;
 					ret->pos_y = y+2;
@@ -518,7 +518,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 			}
 			
 			// Down options
-			if(((y-2)>=0)&&((x-1)>=0)&&(F[x-1][y-2]<=0) {
+			if(((y-2)>=0)&&((x-1)>=0)&&(F[x-1][y-2]<=0)) {
 				if(m_c == n) {
 					ret->pos_x = x-1;
 					ret->pos_y = y-2;
@@ -526,7 +526,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 				}
 				m_c++;
 			}
-			if(((y-2)>=0)&&((x+1)<8)&&(F[x+1][y-2]<=0) {
+			if(((y-2)>=0)&&((x+1)<8)&&(F[x+1][y-2]<=0)) {
 				if(m_c == n) {
 					ret->pos_x = x+1;
 					ret->pos_y = y-2;
@@ -536,7 +536,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 			}
 			
 			// Left options
-			if(((y-1)>=0)&&((x-2)>=0)&&(F[x-2][y-1]<=0) {
+			if(((y-1)>=0)&&((x-2)>=0)&&(F[x-2][y-1]<=0)) {
 				if(m_c == n) {
 					ret->pos_x = x-2;
 					ret->pos_y = y-1;
@@ -544,7 +544,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 				}
 				m_c++;
 			}
-			if(((y+1)<8)&&((x-2)>=0)&&(F[x-2][y+1]<=0) {
+			if(((y+1)<8)&&((x-2)>=0)&&(F[x-2][y+1]<=0)) {
 				if(m_c == n) {
 					ret->pos_x = x-2;
 					ret->pos_y = y+1;
@@ -554,7 +554,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 			}
 			
 			// Right options
-			if(((y-1)>=0)&&((x+2)<8)&&(F[x+2][y-1]<=0) {
+			if(((y-1)>=0)&&((x+2)<8)&&(F[x+2][y-1]<=0)) {
 				if(m_c == n) {
 					ret->pos_x = x+2;
 					ret->pos_y = y-1;
@@ -562,7 +562,7 @@ void find_nth_move(int ** F, int ** P, int n, struct moviment * ret) {
 				}
 				m_c++;
 			}
-			if(((y+1)<8)&&((x+2)<8)&&(F[x+2][y+1]<=0) {
+			if(((y+1)<8)&&((x+2)<8)&&(F[x+2][y+1]<=0)) {
 				if(m_c == n) {
 					ret->pos_x = x+2;
 					ret->pos_y = y+1;
@@ -689,7 +689,7 @@ double mount_pieces(int ** F, int ** P, int player) {
 	
 	score = 0;
 	for(i=0; i<8; i++) {
-		for(j=0, j<8; j++) {
+		for(j=0; j<8; j++) {
 			// no piece
 			if(F[i][j]==0) {
 				continue;
@@ -712,12 +712,12 @@ double mount_pieces(int ** F, int ** P, int player) {
 					value = castle_value*player;
 				}
 			}
-			else if(abs(F[i][j]) == knigh) {
+			else if(abs(F[i][j]) == knight) {
 				if(F[i][j]<0) {
-					value = knigh_value*(-1)*player;
+					value = knight_value*(-1)*player;
 				}
 				else {
-					value = knigh_value*player;
+					value = knight_value*player;
 				}
 			}
 			else if(abs(F[i][j]) == bishop) {
@@ -763,18 +763,28 @@ double mount_pieces(int ** F, int ** P, int player) {
 
 // Update score table and alpha/beta values. 
 // Return -1 if alpha-beta condition wasn't matched, 1 otherwise.
-int updateScore(double * best_score, int depth, int *alpha, int *beta) {
-	
+int updateScore(double * best_score, int depth, int score, double *alpha, double *beta) {
 	// Even
 	if((depth%2 == 0)) {
-		
+		if(score > best_score[depth]) {
+			*alpha = score;
+		}
+		if(beta > alpha){
+            return 1;
+        }
 	}
 	
 	// Odd
 	else {
-		
+		if(score > best_score[depth]) {
+			*beta = score;
+		}
+		if(beta < alpha){
+            return 1;
+        }
 	}
 	
+	return -1;
 }
 
 // F = field[8][8] converted to this system, max_depth, player: -1 white. 1 black.
@@ -788,36 +798,54 @@ int AlphaBeta(int **F, int max_depth, int player) {
 	struct moviment * next;
 	struct moviment * mov;
 	
-	score = mount_pieces(F, P);		// Mount pieces table.
-	init_queue(&Q);					// Init queue
+	score = mount_pieces(F, P, player);		// Mount pieces table.
+	init_queue(&Q);							// Init queue
 	best_score = (double *) malloc (sizeof(double)*max_depth);
 	
 	for(i=0; i<max_depth; i++) {
 		best_score[i] = -999999;	// -inf. 
 	}
 	
-	while(Q->pop_pos >= 0) {
+	while(Q.pop_pos >= 0) {
 		found_move = -1;
 		if((depth <= max_depth)&&(u_ret<0)) {			// If can expand, try!
 			next = alloc_mov(&Q);						// Get new move.
 			find_nth_move(F, P, mov_counter, next);		// Find next move.
-			if(next->id >= 0) {							// If valid move was found.
+			if(next->index >= 0) {						// If valid move was found.
 				score += apply_move(F,P,next);
 				depth++;
 				found_move = 1;
-				u_ret = updateScore(best_score, depth, &alpha, &beta);
+				u_ret = updateScore(best_score, depth, score, &alpha, &beta);
 			}
 		}
 		if(found_move < 0) {	// If valid move wasn't found or max_depth was reached.
 			mov = pop_mov(&Q);
 			score += undo_move(F,P,mov);
 			depth--;
-			u_ret = updateScore(best_score, depth, &alpha, &beta);
+			u_ret = updateScore(best_score, depth, score, &alpha, &beta);
 		}
 	}
 	
 	free_queue(&Q);
 	free(best_score);
+	return 0;
+}
+
+int main() {
+	int player = -1, max_depth = 5;
+	int F[8][8];
+	F[0][0] = -castle; 	F[0][1] = -knight; 	F[0][2] = -bishop; 	F[0][3] = -queen;
+	F[0][4] = -king; 	F[0][5] = -bishop; 	F[0][6] = -knight; 	F[0][7] = -castle;
+	F[1][0] = -pawn; 	F[1][1] = -pawn; 	F[1][2] = -pawn; 	F[1][3] = -pawn;
+	F[1][4] = -pawn; 	F[1][5] = -pawn; 	F[1][6] = -pawn; 	F[1][7] = -pawn;
+	F[6][0] = -pawn; 	F[6][1] = -pawn; 	F[6][2] = -pawn; 	F[6][3] = -pawn;
+	F[6][4] = -pawn; 	F[6][5] = -pawn; 	F[6][6] = -pawn; 	F[6][7] = -pawn;
+	F[7][0] = castle; 	F[7][1] = knight; 	F[7][2] = bishop; 	F[7][3] = queen;
+	F[7][4] = king; 	F[7][5] = bishop; 	F[7][6] = knight; 	F[7][7] = castle;
+	
+	AlphaBeta(F, max_depth, player);
+	
+	return 0;
 }
 
 /*
