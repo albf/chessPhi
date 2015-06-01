@@ -105,6 +105,7 @@ int apply_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov) {
     P[mov->index][3] = mov->pos_x;
     P[mov->index][4] = mov->pos_y;
     F[mov->pos_x][mov->pos_y] = P[mov->index][1];
+    F[mov->l_pos_x][mov->l_pos_y] = 0;
     // Kill this piece.
     if(mov->k_index >= 0) {
         P[mov->k_index][0] = -1;
@@ -115,7 +116,7 @@ int apply_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov) {
 
 // Return next nTH move in ret. If couldn't found, return -1 in ret->index. Don't apply the move.
 void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct moviment * ret) {
-    int i, x, y, m_c=0, pos;
+    int i, x, y, m_c=-1, pos;
     
     for(i=0; i<32; i++) {
         // Discard dead pieces.
@@ -130,53 +131,53 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
         if(P[i][1] == -pawn) {
             // Try to move foward. 
             if(((y+1)<8) && (F[x][y+1]==0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x;
                     ret->pos_y = y+1;
                     break;
                 }
-                m_c++;
             }
             // Check if it's the first move and can move 2x foward.
             if((y==1) && (F[x][y+1]==0) && (F[x][y+2]==0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x;
                     ret->pos_y = y+2;
                     break;
                 }
-                m_c++;
             }
             
             // Try to get piece on foward-left
             if(((y+1)<8) && ((x-1)>=0) && (F[x-1][y+1]>0)) {
+                m_c++;  
                 if(m_c == n) {
                     ret->pos_x = x-1;
                     ret->pos_y = y+1;
                     break;
                 }
-                m_c++;  
             }
             
             // Try to get piece on foward-right
             if(((y+1)<8) && ((x+1)<8) && (F[x-1][y+1]>0)) {
+                m_c++;  
                 if(m_c == n) {
                     ret->pos_x = x+1;
                     ret->pos_y = y+1;
                     break;
                 }
-                m_c++;  
             }
         }
         // White castles
         else if ((P[i][1] == -castle)||(P[i][1] == -queen)||(P[i][1] == -king)) {
             // Just try to move foward.
             for(pos=1; (((y+pos)<8)&&(F[x][y+pos]>=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x;
                     ret->pos_y = y+pos;
                     break;
                 }
-                m_c++;
                 if((F[x][y+pos]>0)||(P[i][1] == -king)) {
                     break;
                 }
@@ -188,12 +189,12 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
             
             // Just try to move backward.
             for(pos=1; (((y-pos)>=0)&&(F[x][y-pos]>=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x;
                     ret->pos_y = y-pos;
                     break;
                 }
-                m_c++;
                 if((F[x][y-pos]>0)||(P[i][1] == -king)) {
                     break;
                 }
@@ -205,12 +206,12 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
             
             // Just try to move to the left.
             for(pos=1; (((x-pos)>=0)&&(F[x-pos][y]>=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x;
                     ret->pos_y = y-pos;
                     break;
                 }
-                m_c++;
                 if((F[x-pos][y]>0)||(P[i][1] == -king)) {
                     break;
                 }
@@ -222,12 +223,12 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
             
             // Just try to move to the right.
             for(pos=1; (((x+pos)<8)&&(F[x+pos][y]>=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x;
                     ret->pos_y = y+pos;
                     break;
                 }
-                m_c++;
                 if((F[x+pos][y]>0)||(P[i][1] == -king)) {
                     break;
                 }
@@ -241,74 +242,74 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
         else if (P[i][1] == -knight) {
             // Up options
             if(((y+2)<8)&&((x-1)>=0)&&(F[x-1][y+2]>=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x-1;
                     ret->pos_y = y+2;
                     break;
                 }
-                m_c++;
             }
             if(((y+2)<8)&&((x+1)<8)&&(F[x+1][y+2]>=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x+1;
                     ret->pos_y = y+2;
                     break;
                 }
-                m_c++;
             }
             
             // Down options
             if(((y-2)>=0)&&((x-1)>=0)&&(F[x-1][y-2]>=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x-1;
                     ret->pos_y = y-2;
                     break;
                 }
-                m_c++;
             }
             if(((y-2)>=0)&&((x+1)<8)&&(F[x+1][y-2]>=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x+1;
                     ret->pos_y = y-2;
                     break;
                 }
-                m_c++;
             }
             
             // Left options
             if(((y-1)>=0)&&((x-2)>=0)&&(F[x-2][y-1]>=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x-2;
                     ret->pos_y = y-1;
                     break;
                 }
-                m_c++;
             }
             if(((y+1)<8)&&((x-2)>=0)&&(F[x-2][y+1]>=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x-2;
                     ret->pos_y = y+1;
                     break;
                 }
-                m_c++;
             }
             
             // Right options
             if(((y-1)>=0)&&((x+2)<8)&&(F[x+2][y-1]>=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x+2;
                     ret->pos_y = y-1;
                     break;
                 }
-                m_c++;
             }
             if(((y+1)<8)&&((x+2)<8)&&(F[x+2][y+1]>=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x+2;
                     ret->pos_y = y+1;
                     break;
                 }
-                m_c++;
             }
             
         }
@@ -316,12 +317,12 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
         else if ((P[i][1] == -bishop)||(P[i][1] == -queen)||(P[i][1] == -king)) {
             // Just try to move foward-right.
             for(pos=1; (((y+pos)<8)&&((x+pos)<8)&&(F[x+pos][y+pos]>=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x+pos;
                     ret->pos_y = y+pos;
                     break;
                 }
-                m_c++;
                 if((F[x+pos][y+pos]>0)||(P[i][1] == -king)) {
                     break;
                 }
@@ -333,12 +334,12 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
             
             // Just try to move foward-left.
             for(pos=1; (((y+pos)<8)&&((x-pos)>=0)&&(F[x-pos][y+pos]>=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x-pos;
                     ret->pos_y = y+pos;
                     break;
                 }
-                m_c++;
                 if((F[x-pos][y+pos]>0)||(P[i][1] == -king)) {
                     break;
                 }
@@ -350,12 +351,12 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
             
             // Just try to move backward-right.
             for(pos=1; (((y-pos)>=0)&&((x+pos)<8)&&(F[x+pos][y-pos]>=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x+pos;
                     ret->pos_y = y-pos;
                     break;
                 }
-                m_c++;
                 if((F[x+pos][y-pos]>0)||(P[i][1] == -king)) {
                     break;
                 }
@@ -363,12 +364,12 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
             
             // Just try to move backward-left.
             for(pos=1; (((y-pos)>=0)&&((x-pos)>=0)&&(F[x-pos][y-pos]>=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x-pos;
                     ret->pos_y = y-pos;
                     break;
                 }
-                m_c++;
                 if((F[x-pos][y-pos]>0)||(P[i][1] == -king)) {
                     break;
                 }
@@ -389,41 +390,41 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
         else if(P[i][1] == pawn) {
             // Try to move foward. 
             if(((y-1)>=0) && (F[x][y-1]==0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x;
                     ret->pos_y = y-1;
                     break;
                 }
-                m_c++;
             }
             // Check if it's the first move and can move 2x foward.
             if((y==6) && (F[x][y-1]==0) && (F[x][y-2]==0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x;
                     ret->pos_y = y-2;
                     break;
                 }
-                m_c++;
             }
             
             // Try to get piece on foward-left
             if(((y-1)>=0) && ((x-1)>=0) && (F[x-1][y-1]<0)) {
+                m_c++;  
                 if(m_c == n) {
                     ret->pos_x = x-1;
                     ret->pos_y = y-1;
                     break;
                 }
-                m_c++;  
             }
             
             // Try to get piece on foward-right
             if(((y-1)>=0) && ((x+1)<8) && (F[x-1][y-1]<0)) {
+                m_c++;  
                 if(m_c == n) {
                     ret->pos_x = x+1;
                     ret->pos_y = y-1;
                     break;
                 }
-                m_c++;  
             }
         }
         
@@ -431,12 +432,12 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
         else if ((P[i][1] == castle)||(P[i][1] == queen)||(P[i][1] == king)) {
             // Just try to move foward.
             for(pos=1; (((y+pos)<8)&&(F[x][y+pos]<=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x;
                     ret->pos_y = y+pos;
                     break;
                 }
-                m_c++;
                 if((F[x][y+pos]<0)||(P[i][1] == king)) {
                     break;
                 }
@@ -448,12 +449,12 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
             
             // Just try to move backward.
             for(pos=1; (((y-pos)>=0)&&(F[x][y-pos]<=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x;
                     ret->pos_y = y-pos;
                     break;
                 }
-                m_c++;
                 if((F[x][y-pos]<0)||(P[i][1] == king)) {
                     break;
                 }
@@ -465,12 +466,12 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
             
             // Just try to move to the left.
             for(pos=1; (((x-pos)>=0)&&(F[x-pos][y]<=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x;
                     ret->pos_y = y-pos;
                     break;
                 }
-                m_c++;
                 if((F[x-pos][y]<0)||(P[i][1] == king)) {
                     break;
                 }
@@ -482,12 +483,12 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
             
             // Just try to move to the right.
             for(pos=1; (((x+pos)<8)&&(F[x+pos][y]<=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x;
                     ret->pos_y = y+pos;
                     break;
                 }
-                m_c++;
                 if((F[x+pos][y]<0)||(P[i][1] == king)) {
                     break;
                 }
@@ -501,74 +502,74 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
         else if (P[i][1] == knight) {
             // Up options
             if(((y+2)<8)&&((x-1)>=0)&&(F[x-1][y+2]<=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x-1;
                     ret->pos_y = y+2;
                     break;
                 }
-                m_c++;
             }
             if(((y+2)<8)&&((x+1)<8)&&(F[x+1][y+2]<=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x+1;
                     ret->pos_y = y+2;
                     break;
                 }
-                m_c++;
             }
             
             // Down options
             if(((y-2)>=0)&&((x-1)>=0)&&(F[x-1][y-2]<=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x-1;
                     ret->pos_y = y-2;
                     break;
                 }
-                m_c++;
             }
             if(((y-2)>=0)&&((x+1)<8)&&(F[x+1][y-2]<=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x+1;
                     ret->pos_y = y-2;
                     break;
                 }
-                m_c++;
             }
             
             // Left options
             if(((y-1)>=0)&&((x-2)>=0)&&(F[x-2][y-1]<=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x-2;
                     ret->pos_y = y-1;
                     break;
                 }
-                m_c++;
             }
             if(((y+1)<8)&&((x-2)>=0)&&(F[x-2][y+1]<=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x-2;
                     ret->pos_y = y+1;
                     break;
                 }
-                m_c++;
             }
             
             // Right options
             if(((y-1)>=0)&&((x+2)<8)&&(F[x+2][y-1]<=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x+2;
                     ret->pos_y = y-1;
                     break;
                 }
-                m_c++;
             }
             if(((y+1)<8)&&((x+2)<8)&&(F[x+2][y+1]<=0)) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x+2;
                     ret->pos_y = y+1;
                     break;
                 }
-                m_c++;
             }
             
         }
@@ -576,12 +577,12 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
         else if ((P[i][1] == bishop)||(P[i][1] == queen)||(P[i][1] == king)) {
             // Just try to move foward-right.
             for(pos=1; (((y+pos)<8)&&((x+pos)<8)&&(F[x+pos][y+pos]<=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x+pos;
                     ret->pos_y = y+pos;
                     break;
                 }
-                m_c++;
                 if((F[x+pos][y+pos]<0)||(P[i][1] == king)) {
                     break;
                 }
@@ -593,12 +594,12 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
             
             // Just try to move foward-left.
             for(pos=1; (((y+pos)<8)&&((x-pos)>=0)&&(F[x-pos][y+pos]<=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x-pos;
                     ret->pos_y = y+pos;
                     break;
                 }
-                m_c++;
                 if((F[x-pos][y+pos]<0)||(P[i][1] == king)) {
                     break;
                 }
@@ -610,12 +611,12 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
             
             // Just try to move backward-right.
             for(pos=1; (((y-pos)>=0)&&((x+pos)<8)&&(F[x+pos][y-pos]<=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x+pos;
                     ret->pos_y = y-pos;
                     break;
                 }
-                m_c++;
                 if((F[x+pos][y-pos]<0)||(P[i][1] == king)) {
                     break;
                 }
@@ -627,12 +628,12 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
             
             // Just try to move backward-left.
             for(pos=1; (((y-pos)>=0)&&((x-pos)>=0)&&(F[x-pos][y-pos]<=0)) ; pos++) {
+                m_c++;
                 if(m_c == n) {
                     ret->pos_x = x-pos;
                     ret->pos_y = y-pos;
                     break;
                 }
-                m_c++;
                 if((F[x-pos][y-pos]<0)||(P[i][1] == king)) {
                     break;
                 }
@@ -678,10 +679,10 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
 // Make pieces table using field table, returns score.
 // Player -1 = white, Player + 1 = black
 double mount_pieces(int F[8][8], int P[num_pieces][num_col], int player) {
-    int i, j;
+    int i, j, c=0;
     double score, value;
     
-    for(i=0; i<16; i++) {
+    for(i=0; i<32; i++) {
         P[i][0] = 0;
         P[i][4] = -1;
         P[i][5] = -1;
@@ -750,12 +751,13 @@ double mount_pieces(int F[8][8], int P[num_pieces][num_col], int player) {
             }
             
             // IsAlive, type and score
-            P[i][0] = 1;
-            P[i][1] = F[i][j];
-            P[i][2] = value;
+            P[c][0] = 1;
+            P[c][1] = F[i][j];
+            P[c][2] = value;
             // pos x and pos 
-            P[i][3] = i;
-            P[i][4] = j;
+            P[c][3] = i;
+            P[c][4] = j;
+            c++;
         }
     }
     return score;
@@ -794,13 +796,14 @@ int AlphaBeta(int F[8][8], int max_depth, int player) {
     int depth = 0, i, found_move, u_ret=-1;
     double alpha, beta, score;
     double * best_score;
-    int mov_counter = 0;
+    int * mov_counter;
     struct moviment * next;
     struct moviment * mov;
     
     score = mount_pieces(F, P, player);     // Mount pieces table.
     init_queue(&Q);                         // Init queue
     best_score = (double *) malloc (sizeof(double)*max_depth);
+    mov_counter = (int *) malloc (sizeof(int)*max_depth);
     
     for(i=0; i<max_depth; i++) {
         best_score[i] = -999999;    // -inf. 
@@ -808,10 +811,11 @@ int AlphaBeta(int F[8][8], int max_depth, int player) {
     
     while(Q.pop_pos >= 0) {
         found_move = -1;
-        if((depth <= max_depth)&&(u_ret<0)) {           // If can expand, try!
-            next = alloc_mov(&Q);                       // Get new move.
-            find_nth_move(F, P, mov_counter, next);     // Find next move.
-            if(next->index >= 0) {                      // If valid move was found.
+        if((depth <= max_depth)&&(u_ret<0)) {                   // If can expand, try!
+            next = alloc_mov(&Q);                               // Get new move.
+            find_nth_move(F, P, mov_counter[depth], next);      // Find next move.
+            mov_counter[depth]++;                               // Update depth counter.
+            if(next->index >= 0) {                              // If valid move was found.
                 score += apply_move(F,P,next);
                 depth++;
                 found_move = 1;
@@ -828,20 +832,37 @@ int AlphaBeta(int F[8][8], int max_depth, int player) {
     
     free_queue(&Q);
     free(best_score);
+    free(mov_counter);
     return 0;
 }
 
 int main() {
+    int i, j;
     int player = -1, max_depth = 5;
     int F[8][8];
+
+    for(i=0; i<8; i++) {
+        for(j=0; j<8; j++) {
+            F[i][j] = 0;
+        }
+    }
+
     F[0][0] = -castle;  F[0][1] = -knight;  F[0][2] = -bishop;  F[0][3] = -queen;
     F[0][4] = -king;    F[0][5] = -bishop;  F[0][6] = -knight;  F[0][7] = -castle;
     F[1][0] = -pawn;    F[1][1] = -pawn;    F[1][2] = -pawn;    F[1][3] = -pawn;
     F[1][4] = -pawn;    F[1][5] = -pawn;    F[1][6] = -pawn;    F[1][7] = -pawn;
-    F[6][0] = -pawn;    F[6][1] = -pawn;    F[6][2] = -pawn;    F[6][3] = -pawn;
-    F[6][4] = -pawn;    F[6][5] = -pawn;    F[6][6] = -pawn;    F[6][7] = -pawn;
+    F[6][0] =  pawn;    F[6][1] =  pawn;    F[6][2] =  pawn;    F[6][3] =  pawn;
+    F[6][4] =  pawn;    F[6][5] =  pawn;    F[6][6] =  pawn;    F[6][7] =  pawn;
     F[7][0] = castle;   F[7][1] = knight;   F[7][2] = bishop;   F[7][3] = queen;
     F[7][4] = king;     F[7][5] = bishop;   F[7][6] = knight;   F[7][7] = castle;
+
+    // Print Field for debug reasons.
+    for(i=0; i<8; i++) {
+        for(j=0; j<8; j++) {
+            printf("%d ", F[i][j]);
+        }
+        printf("\n");
+    }
     
     AlphaBeta(F, max_depth, player);
     
