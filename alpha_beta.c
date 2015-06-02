@@ -51,8 +51,8 @@ struct queue{
 };
 
 // Init the moviment queue.
-void init_queue(struct queue * Q) {
-    Q->size = 2;
+void init_queue(struct queue * Q, int size) {
+    Q->size = size;
     Q->pop_pos = 0;
     Q->mov = (struct moviment *) malloc (sizeof(struct moviment)*Q->size);
 }
@@ -64,7 +64,7 @@ void free_queue(struct queue * Q) {
 
 // Guarantee that it's possible to add a new moviment.
 void assign_size(struct queue * Q) {
-    if(Q->size == (Q->pop_pos + 1)) {
+    if(Q->size == Q->pop_pos) {
         Q->size = Q->size*2;
         Q->mov = (struct moviment *) realloc (Q->mov, sizeof(struct moviment)*Q->size);
     }
@@ -806,7 +806,7 @@ int updateScore(double * best_score, int depth, int score, struct moviment * nex
 struct moviment * AlphaBeta(int F[8][8], int max_depth, int player) {
     struct queue Q;
     int P[num_pieces][num_col];
-    int depth = 0, i, found_move, u_ret=-1;
+    int depth = 0, i, u_ret=-1;
     double score;              
     double * best_score;                    // Bestscore = [alfa, beta, alfa, beta]
     int * mov_counter;
@@ -815,13 +815,13 @@ struct moviment * AlphaBeta(int F[8][8], int max_depth, int player) {
     struct moviment * best_move;            // Best move available. Only used for depth=0.
     
     score = mount_pieces(F, P, player);     // Mount pieces table.
-    init_queue(&Q);                         // Init queue
-    best_score = (double *) malloc (sizeof(double)*max_depth); 
-    mov_counter = (int *) malloc (sizeof(int)*max_depth);
+    init_queue(&Q, max_depth);              // Init queue
+    best_score = (double *) malloc (sizeof(double)*(max_depth+1)); 
+    mov_counter = (int *) malloc (sizeof(int)*(max_depth+1));
     best_move = (struct moviment *) malloc(sizeof(struct moviment));
 
     
-    for(i=0; i<max_depth; i++) {            // Alpha=-inf ; Beta = inf
+    for(i=0; i<=max_depth; i++) {            // Alpha=-inf ; Beta = inf
         if((i%2)==0) {
             best_score[i] = -999999;        // -inf. 
         }
@@ -831,29 +831,44 @@ struct moviment * AlphaBeta(int F[8][8], int max_depth, int player) {
         mov_counter[i] = 0;
     }
     
-    while(Q.pop_pos >= 0) {
-        found_move = -1;
-        if((depth < max_depth)&&(u_ret<0)) {                        // If can expand, try!
+    int loop =0, found=0;
+    while(1) {
+        printf("Loop: %d\n", loop++);
+        printf("depth : %d\n", depth);
+        printf("load u_ret: %d\n", u_ret);
+        printf("found: %d\n", found);
+        if((depth >= max_depth)||(u_ret > 0)) {
+            u_ret = updateScore(best_score, depth, score, next, best_move);
+            depth--;
+            if(depth < 0) {
+                break;
+            }
+            mov = pop_mov(&Q);
+            score += undo_move(F,P,mov);
+            player = player * -1;                                   // Invert player.
+        }
+        else {                                                      // If can expand, try!
             next = alloc_mov(&Q);                                   // Get new move.
             find_nth_move(F, P, mov_counter[depth], next, player);  // Find next move.
             mov_counter[depth]++;                                   // Update depth counter.
             if(next->index >= 0) {                                  // If valid move was found.
                 score += apply_move(F,P,next);
-                found_move = 1;
-                u_ret = updateScore(best_score, depth, score, next, best_move);
                 depth++;
                 player = player * -1;                               // Invert player.
+                // debug
+                found++;
+            }
+            else {
+                pop_mov(&Q);
+                u_ret = 1;
             }
         }
-        if(found_move < 0) {    // If valid move wasn't found or max_depth was reached.
-            if(depth == 0) {
-                break;
-            }
-            mov = pop_mov(&Q);
-            score += undo_move(F,P,mov);
-            //u_ret = updateScore(best_score, depth, score);        // Don't update score, just pop moviment.
-            depth--;
-            player = player * -1;                                   // Invert player.
+    }
+
+    // Fix best_score
+    for(i=0; i<32; i++) {
+        if((P[i][3] == best_move->l_pos_x)&&(P[i][4] == best_move->l_pos_y)) {
+            best_move->index = i;
         }
     }
     
@@ -866,7 +881,7 @@ struct moviment * AlphaBeta(int F[8][8], int max_depth, int player) {
 
 int main() {
     int i, j;
-    int player = -1, max_depth = 1;
+    int player = -1, max_depth = 5;
     int F[8][8];
     struct moviment * best_move;
 
@@ -876,19 +891,19 @@ int main() {
         }
     }
 
-    F[0][0] = -castle;  F[0][1] = -knight;  F[0][2] = -bishop;  F[0][3] = -queen;
-    F[0][4] = -king;    F[0][5] = -bishop;  F[0][6] = -knight;  F[0][7] = -castle;
-    F[1][0] = -pawn;    F[1][1] = -pawn;    F[1][2] = -pawn;    F[1][3] = -pawn;
-    F[1][4] = -pawn;    F[1][5] = -pawn;    F[1][6] = -pawn;    F[1][7] = -pawn;
-    F[6][0] =  pawn;    F[6][1] =  pawn;    F[6][2] =  pawn;    F[6][3] =  pawn;
-    F[6][4] =  pawn;    F[6][5] =  pawn;    F[6][6] =  pawn;    F[6][7] =  pawn;
-    F[7][0] = castle;   F[7][1] = knight;   F[7][2] = bishop;   F[7][3] = queen;
-    F[7][4] = king;     F[7][5] = bishop;   F[7][6] = knight;   F[7][7] = castle;
+    F[0][0] = -castle;  F[1][0] = -knight;  F[2][0] = -bishop;  F[3][0] = -queen;
+    F[4][0] = -king;    F[5][0] = -bishop;  F[6][0] = -knight;  F[7][0] = -castle;
+    F[0][1] = -pawn;    F[1][1] = -pawn;    F[2][1] = -pawn;    F[3][1] = -pawn;
+    F[4][1] = -pawn;    F[5][1] = -pawn;    F[6][1] = -pawn;    F[7][1] = -pawn;
+    F[0][6] =  pawn;    F[1][6] =  pawn;    F[2][6] =  pawn;    F[3][6] =  pawn;
+    F[4][6] =  pawn;    F[5][6] =  pawn;    F[6][6] =  pawn;    F[7][6] =  pawn;
+    F[0][7] = castle;   F[1][7] = knight;   F[2][7] = bishop;   F[3][7] = queen;
+    F[4][7] = king;     F[5][7] = bishop;   F[6][7] = knight;   F[7][7] = castle;
 
     // Print Field for debug reasons.
     for(i=7; i>=0; i--) {
         for(j=0; j<8; j++) {
-            printf("%*d ",3, F[i][j]);
+            printf("%*d ",3, F[j][i]);
         }
         printf("\n");
     }
@@ -899,7 +914,7 @@ int main() {
     // Print Field for debug reasons.
     for(i=7; i>=0; i--) {
         for(j=0; j<8; j++) {
-            printf("%*d ",3, F[i][j]);
+            printf("%*d ",3, F[j][i]);
         }
         printf("\n");
     }
