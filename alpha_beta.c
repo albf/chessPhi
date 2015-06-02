@@ -827,10 +827,10 @@ struct moviment * AlphaBeta(int F[8][8], int max_depth, int player) {
         else {
             best_score[i] = 999999;
         }
+        mov_counter[i] = 0;
     }
     
     while(Q.pop_pos >= 0) {
-        printf("loop\n");
         found_move = -1;
         if((depth < max_depth)&&(u_ret<0)) {                        // If can expand, try!
             next = alloc_mov(&Q);                                   // Get new move.
@@ -845,6 +845,9 @@ struct moviment * AlphaBeta(int F[8][8], int max_depth, int player) {
             }
         }
         if(found_move < 0) {    // If valid move wasn't found or max_depth was reached.
+            if(depth == 0) {
+                break;
+            }
             mov = pop_mov(&Q);
             score += undo_move(F,P,mov);
             //u_ret = updateScore(best_score, depth, score);        // Don't update score, just pop moviment.
@@ -856,14 +859,15 @@ struct moviment * AlphaBeta(int F[8][8], int max_depth, int player) {
     free_queue(&Q);
     free(best_score);
     free(mov_counter);
-    return best_move;
+    printf("Mov : %d, %d -> %d %d\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y);
+    return NULL;
 }
 
 int main() {
     int i, j;
     int player = -1, max_depth = 1;
     int F[8][8];
-    struct moviment * best_move;
+    //struct moviment * best_move;
 
     for(i=0; i<8; i++) {
         for(j=0; j<8; j++) {
@@ -888,8 +892,8 @@ int main() {
         printf("\n");
     }
     
-    best_move = AlphaBeta(F, max_depth, player);
-    printf("Mov : %d, %d -> %d %d\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y);
+    AlphaBeta(F, max_depth, player);
+    //printf("Mov : %d, %d -> %d %d\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y);
     
     return 0;
 }
