@@ -683,14 +683,14 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
 
 // Make pieces table using field table, returns score.
 // Player -1 = white, Player + 1 = black
-double mount_pieces(int F[8][8], int P[num_pieces][num_col], int player) {
+double mount_pieces(int F[][8], int P[][num_col], int player) {
     int i, j, c=0;
     double score, value;
-    
+
     for(i=0; i<32; i++) {
         P[i][0] = 0;
+        P[i][3] = -1;
         P[i][4] = -1;
-        P[i][5] = -1;
     }
     
     score = 0;
@@ -819,6 +819,7 @@ struct moviment * AlphaBeta(int F[8][8], int max_depth, int player) {
     best_score = (double *) malloc (sizeof(double)*max_depth); 
     mov_counter = (int *) malloc (sizeof(int)*max_depth);
     best_move = (struct moviment *) malloc(sizeof(struct moviment));
+
     
     for(i=0; i<max_depth; i++) {            // Alpha=-inf ; Beta = inf
         if((i%2)==0) {
@@ -859,15 +860,15 @@ struct moviment * AlphaBeta(int F[8][8], int max_depth, int player) {
     free_queue(&Q);
     free(best_score);
     free(mov_counter);
-    printf("Mov : %d, %d -> %d %d\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y);
-    return NULL;
+    apply_move(F,P,best_move);
+    return best_move;
 }
 
 int main() {
     int i, j;
     int player = -1, max_depth = 1;
     int F[8][8];
-    //struct moviment * best_move;
+    struct moviment * best_move;
 
     for(i=0; i<8; i++) {
         for(j=0; j<8; j++) {
@@ -885,74 +886,26 @@ int main() {
     F[7][4] = king;     F[7][5] = bishop;   F[7][6] = knight;   F[7][7] = castle;
 
     // Print Field for debug reasons.
-    for(i=0; i<8; i++) {
+    for(i=7; i>=0; i--) {
         for(j=0; j<8; j++) {
-            printf("%d ", F[i][j]);
+            printf("%*d ",3, F[i][j]);
         }
         printf("\n");
     }
     
-    AlphaBeta(F, max_depth, player);
-    //printf("Mov : %d, %d -> %d %d\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y);
+    best_move = AlphaBeta(F, max_depth, player);
+    printf("Mov : %d, %d -> %d %d\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y);
+
+    // Print Field for debug reasons.
+    for(i=7; i>=0; i--) {
+        for(j=0; j<8; j++) {
+            printf("%*d ",3, F[i][j]);
+        }
+        printf("\n");
+    }
+
+    free(best_move);
     
     return 0;
 }
 
-/*
-Board* ABMinMax(Board* board, short int depth_limit) {
-    return ABMaxMove(board, depth_limit, 1, 0, 0);
-}
-Board* ABMaxMove(Board* board, short int depth_limit, short int depth, int a, int b) {
-    vector<Board*> *moves;
-    Board* best_move = NULL;
-    Board* best_real_move = NULL;
-    Board* move = NULL;
-    int alpha = a,beta = b;
-
-    if (depth >= depth_limit) {//if depth limit is reached
-        return board;
-    } else {
-        moves = board->list_all_moves();
-        for (vector<Board*>::iterator it = moves->begin(); it != moves->end(); it++) {
-            move = ABMinMove(*it, depth_limit, depth+1, alpha, beta);
-            if (best_move == NULL || move->evaluate_board(Black)
-                    > best_move->evaluate_board(Black)) {
-                best_move = move;
-                best_real_move = *it;
-                alpha = move->evaluate_board(Black);
-            }
-            if(beta > alpha){
-                return best_real_move;
-            }
-        }
-        return best_real_move;
-    }
-}
-Board* ABMinMove(Board* board, short int depth_limit, short int depth, int a, int b) {
-    vector<Board*> *moves;
-    Board* best_move = NULL;
-    Board* best_real_move = NULL;
-    Board* move = NULL;
-    int alpha = a,beta = b;
-
-    if (depth >= depth_limit) {//if depth limit is reached
-        return board;
-    } else {
-        moves = board->list_all_moves();
-        for (vector<Board*>::iterator it = moves->begin(); it != moves->end(); it++) {
-            move = ABMaxMove(*it, depth_limit, depth+1, alpha, beta);
-            if (best_move == NULL || move->evaluate_board(White)
-                    < best_move->evaluate_board(White)) {
-                best_move = move;
-                best_real_move = *it;
-                beta = move->evaluate_board(White);
-            }
-            if(beta < alpha){
-                return best_real_move;
-            }
-        }
-        return best_real_move;
-    }
-}
-
-#endif */
