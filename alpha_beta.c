@@ -213,8 +213,8 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
                 for(pos=1; (((x-pos)>=0)&&(F[x-pos][y]>=0)) ; pos++) {
                     m_c++;
                     if(m_c == n) {
-                        ret->pos_x = x;
-                        ret->pos_y = y-pos;
+                        ret->pos_x = x-pos;
+                        ret->pos_y = y;
                         break;
                     }
                     if((F[x-pos][y]>0)||(P[i][1] == -king)) {
@@ -230,8 +230,8 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
                 for(pos=1; (((x+pos)<8)&&(F[x+pos][y]>=0)) ; pos++) {
                     m_c++;
                     if(m_c == n) {
-                        ret->pos_x = x;
-                        ret->pos_y = y+pos;
+                        ret->pos_x = x+pos;
+                        ret->pos_y = y;
                         break;
                     }
                     if((F[x+pos][y]>0)||(P[i][1] == -king)) {
@@ -475,8 +475,8 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
                 for(pos=1; (((x-pos)>=0)&&(F[x-pos][y]<=0)) ; pos++) {
                     m_c++;
                     if(m_c == n) {
-                        ret->pos_x = x;
-                        ret->pos_y = y-pos;
+                        ret->pos_x = x-pos;
+                        ret->pos_y = y;
                         break;
                     }
                     if((F[x-pos][y]<0)||(P[i][1] == king)) {
@@ -492,8 +492,8 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
                 for(pos=1; (((x+pos)<8)&&(F[x+pos][y]<=0)) ; pos++) {
                     m_c++;
                     if(m_c == n) {
-                        ret->pos_x = x;
-                        ret->pos_y = y+pos;
+                        ret->pos_x = x+pos;
+                        ret->pos_y = y;
                         break;
                     }
                     if((F[x+pos][y]<0)||(P[i][1] == king)) {
@@ -921,18 +921,22 @@ int main() {
         printf("\n");
     }
     
-    best_move = AlphaBeta(F, max_depth, player);
-    printf("Mov : %d, %d -> %d %d\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y);
+    while(1) {
+        best_move = AlphaBeta(F, max_depth, player);
+        printf("Mov : %d, %d -> %d %d\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y);
 
-    // Print Field for debug reasons.
-    for(i=7; i>=0; i--) {
-        for(j=0; j<8; j++) {
-            printf("%*d ",3, F[j][i]);
+        // Print Field for debug reasons.
+        for(i=7; i>=0; i--) {
+            for(j=0; j<8; j++) {
+                printf("%*d ",3, F[j][i]);
+            }
+            printf("\n");
         }
-        printf("\n");
+        printf("Changing player\n");
+        player = player*-1;
+        free(best_move);
     }
 
-    free(best_move);
     
     return 0;
 }
