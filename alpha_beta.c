@@ -124,6 +124,7 @@ int undo_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov) {
 int apply_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov) {
 	if(mov->d_counter == 0) {
 		printf("apply move 0 : %d, %d -> %d, %d\n", mov->l_pos_x, mov->l_pos_y, mov->pos_x, mov->pos_y);
+		printf("DCOUNTER : %d\n", D_COUNTER);
 		print_field(F);
 		printf("\n");	
 	}
