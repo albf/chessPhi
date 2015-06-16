@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // Pieces tables defines.
 // [isAlive, type, value, pos x, pos y]
@@ -975,11 +976,17 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
     return best_move;
 }
 
-int main() {
+int main(int argc,char *argv[]) {
     int i, j;
     int player = -1, max_depth = 20;
     int F[8][8];
     struct moviment * best_move;
+
+    /* Board init */
+
+
+    if(argc!=(64+1))
+    {
 
     for(i=0; i<8; i++) {
         for(j=0; j<8; j++) {
@@ -995,6 +1002,15 @@ int main() {
     F[4][6] =  pawn;    F[5][6] =  pawn;    F[6][6] =  pawn;    F[7][6] =  pawn;
     F[0][7] = castle;   F[1][7] = knight;   F[2][7] = bishop;   F[3][7] = queen;
     F[4][7] = king;     F[5][7] = bishop;   F[6][7] = knight;   F[7][7] = castle;
+
+    }else{
+        for(i=0; i<8; i++) {
+            for(j=0; j<8; j++) {
+                F[i][j] = atoi(argv[((8*i)+j)+1]);
+            }
+        }
+
+    }
 
     // Print Field for debug reasons.
 	print_field(F);
