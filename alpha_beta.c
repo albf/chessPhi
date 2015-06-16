@@ -35,6 +35,7 @@
 // White is negative, Black is positive.
 
 void print_field(int F[8][8]);
+void print_player(int P[num_pieces][num_col]);
 
 int ALPHA_CUT = 0;
 int BETA_CUT = 0;
@@ -48,6 +49,7 @@ struct moviment {
     int pos_x;                      // new X value.
     int pos_y;                      // new Y value.
     int k_index;                    // Index of killed piece, if any. If not, -1.
+    int refresh;                    // 1 if new moviment was found, -1 if not.
 	int d_counter;					// debug counter.
 };
 
@@ -125,22 +127,24 @@ int undo_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov) {
 
 // Apply a given move, return difference in score.
 int apply_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov) {
-	if(mov->d_counter == 0) {
-		printf("apply move 0 : %d, %d -> %d, %d\n", mov->l_pos_x, mov->l_pos_y, mov->pos_x, mov->pos_y);
+	/*if(mov->d_counter == 2873394) {
+		printf("apply move 0 : %d, %d -> %d, %d ; index: %d \n", mov->l_pos_x, mov->l_pos_y, mov->pos_x, mov->pos_y, mov->index);
 		printf("DCOUNTER : %d\n", D_COUNTER);
 		print_field(F);
+        printf("\n");
+        print_player(P);
 		printf("\n");	
-	}
+	}*/
 	
     P[mov->index][3] = mov->pos_x;
     P[mov->index][4] = mov->pos_y;
     F[mov->pos_x][mov->pos_y] = P[mov->index][1];
     F[mov->l_pos_x][mov->l_pos_y] = 0;
 
-	if(mov->d_counter == 0) {
+	/*if(mov->d_counter == 2873394) {
 		print_field(F);
 		printf("end move 0\n");
-	}
+	}*/
 
     // Kill this piece.
     if(mov->k_index >= 0) {
@@ -696,6 +700,7 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
     
     // If found, update index and k_index.
     if(m_c == n) {
+        ret->refresh = 1;
         ret->index = i;
         ret->l_pos_x = P[i][3];
         ret->l_pos_y = P[i][4];
@@ -715,7 +720,7 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
     }
     // If don't found, just make the index -1.
     else {
-        ret->index = -1;
+        ret->refresh = -1;
     }
 }
 
@@ -828,11 +833,11 @@ int update_score(double * best_score, int depth, double score, struct queue * Q,
 		//printf("[BETA] depth : %d, best_score[depth-1]:%lf ; best_score[depth]:%lf\n", depth, best_score[depth-1], best_score[depth]);
         if(score > best_score[depth]) {
             if(depth < 4)
-            printf(">>>Best Score updated, depth, %d\n", depth);
+            //printf(">>>Best Score updated, depth, %d\n", depth);
             best_score[depth] = score;  // best_score[depth] = alpha
 
             if(depth == 0) {            // best score in root? mark as new best_move.
-                printf(">>>Best Score updated\n");
+                //printf(">>>Best Score updated\n");
 				next = get_next(Q);
 				//printf("NEW BEST_MOVE\n");
                 best_move->index = next->index;
@@ -841,7 +846,9 @@ int update_score(double * best_score, int depth, double score, struct queue * Q,
                 best_move->pos_x = next->pos_x;
                 best_move->pos_y = next->pos_y;
                 best_move->k_index = next->k_index;
-                printf("Mov : %d, %d -> %d %d ; Counter: %d\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter);
+                best_move->d_counter = next->d_counter;
+                //printf("Mov : %d, %d -> %d %d ; Counter: %d\n", next->l_pos_x, next->l_pos_y, next->pos_x, next->pos_y, next->d_counter);
+                //printf("Mov : %d, %d -> %d %d ; Counter: %d\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter);
             }
 
         }
@@ -858,7 +865,7 @@ int update_score(double * best_score, int depth, double score, struct queue * Q,
 		//printf("[ALPHA] depth: %d ; best_score[depth-1]:%lf ; best_score[depth]:%lf\n", depth, best_score[depth-1], best_score[depth]);
         if(score < best_score[depth]) {
             if(depth < 4)
-            printf(">>>Best Score updated, depth, %d\n", depth);
+            //printf(">>>Best Score updated, depth, %d\n", depth);
             best_score[depth] = score;  // best_score[depth] = beta 
         }
 		//printf("[ALPHA] depth: %d ; best_score[depth-1]:%lf ; best_score[depth]:%lf\n", depth, best_score[depth-1], best_score[depth]);
@@ -914,10 +921,10 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
     mov_counter = (int *) malloc (sizeof(int)*(max_depth+1));
     best_move = (struct moviment *) malloc(sizeof(struct moviment));
 
-	printf("Finding alpha_beta for: \n");
-	printf("Queue pos: %d\n", Q.pop_pos);
-	print_field(F);
-    print_player(P);
+	//printf("Finding alpha_beta for: \n");
+	//printf("Queue pos: %d\n", Q.pop_pos);
+	//print_field(F);
+    //print_player(P);
     
     
     for(i=0; i<=max_depth; i++) {            // Alpha=-inf ; Beta = inf
@@ -956,7 +963,7 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
             find_nth_move(F, P, mov_counter[depth], next, player);  // Find next move.
 			//printf("Finding move: mov_counter[depth]:%d, player:%d\n", mov_counter[depth], player);
             mov_counter[depth]++;                                   // Update depth counter.
-            if(next->index >= 0) {                                  // If valid move was found.
+            if(next->refresh > 0) {                                 // If valid move was found.
                 score += apply_move(F,P,next);
                 depth++;
                 player = player * -1;                               // Invert player.
@@ -1002,7 +1009,7 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
 
 int main(int argc,char *argv[]) {
     int i, j;
-    int player = -1, max_depth = 20;
+    int player = -1, max_depth = 5;
     int F[8][8];
     struct moviment * best_move;
 
