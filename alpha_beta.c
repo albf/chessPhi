@@ -35,6 +35,7 @@
 
 int ALPHA_CUT = 0;
 int BETA_CUT = 0;
+int D_COUNTER = 0;
 
 // Represents a past moviment.
 struct moviment { 
@@ -44,6 +45,7 @@ struct moviment {
     int pos_x;                      // new X value.
     int pos_y;                      // new Y value.
     int k_index;                    // Index of killed piece, if any. If not, -1.
+	int d_counter;					// debug counter.
 };
 
 // Queue of done moviments. Used to avoid recursion.
@@ -96,25 +98,46 @@ struct moviment * get_next(struct queue * Q) {
 }
 
 // Undo a given move, returns difference in score.
-int undo_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov) {
+int undo_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov) {	
     P[mov->index][3] = mov->l_pos_x;
     P[mov->index][4] = mov->l_pos_y;
     F[mov->l_pos_x][mov->l_pos_y] = P[mov->index][1];
-    F[mov->pos_x][mov->pos_y] = 0;
     // Revive piece.
     if(mov->k_index >= 0) {
+		//printf("Undoing move : %d %d -> %d %d. Counter: %d\n", mov->l_pos_x, mov->l_pos_y, mov->pos_x, mov->pos_y, mov->d_counter);
+		//print_field(F);
+		//printf("\n");
+		
+		F[mov->pos_x][mov->pos_y] = P[mov->k_index][1];
         P[mov->k_index][0] = 1;
+		//print_field(F);
         return P[mov->k_index][2];
     }
+    else {
+	    F[mov->pos_x][mov->pos_y] = 0;
+	}
+	//print_field(F);
     return 0;
 }
 
 // Apply a given move, return difference in score.
 int apply_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov) {
+	if(mov->d_counter == 0) {
+		printf("apply move 0 : %d, %d -> %d, %d\n", mov->l_pos_x, mov->l_pos_y, mov->pos_x, mov->pos_y);
+		print_field(F);
+		printf("\n");	
+	}
+	
     P[mov->index][3] = mov->pos_x;
     P[mov->index][4] = mov->pos_y;
     F[mov->pos_x][mov->pos_y] = P[mov->index][1];
     F[mov->l_pos_x][mov->l_pos_y] = 0;
+
+	if(mov->d_counter == 0) {
+		print_field(F);
+		printf("end move 0\n");
+	}
+
     // Kill this piece.
     if(mov->k_index >= 0) {
         P[mov->k_index][0] = -1;
@@ -126,6 +149,9 @@ int apply_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov) {
 // Return next nTH move in ret. If couldn't found, return -1 in ret->index. Don't apply the move.
 void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct moviment * ret, int player) {
     int i, x, y, m_c=-1, pos;
+
+	ret->d_counter = D_COUNTER;
+	D_COUNTER++;
     
     for(i=0; i<32; i++) {
         // Discard dead or oponent pieces.
@@ -672,7 +698,7 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
         if(F[ret->pos_x][ret->pos_y]!=0) {
             // Marcus, sei que "i" podia ser usado aqui. Compilador cuida disso.
             for(pos=0; pos<32; pos++) {
-                if((P[pos][3] == ret->pos_x) && (P[pos][4] == ret->pos_y)) {
+                if((P[pos][3] == ret->pos_x) && (P[pos][4] == ret->pos_y) && (P[pos][0]>0)) {
                     break;
                 }
             }
@@ -794,7 +820,7 @@ int update_score(double * best_score, int depth, double score, struct queue * Q,
 	//printf("\n");
 
 	// Even
-    if((depth%2) == 0) {
+    if((depth%2) 	== 0) {
 		//printf("[BETA] depth : %d, best_score[depth-1]:%lf ; best_score[depth]:%lf\n", depth, best_score[depth-1], best_score[depth]);
         if(score > best_score[depth]) {
             best_score[depth] = score;  // best_score[depth] = alpha
@@ -865,6 +891,10 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
     mov_counter = (int *) malloc (sizeof(int)*(max_depth+1));
     best_move = (struct moviment *) malloc(sizeof(struct moviment));
 
+	printf("Finding alpha_beta for: \n");
+	printf("Queue pos: %d\n", Q.pop_pos);
+	print_field(F);
+
     
     for(i=0; i<=max_depth; i++) {            // Alpha=-inf ; Beta = inf
         if((i%2)==0) {
@@ -928,6 +958,7 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
     printf("Moviments Visited: %d\n", found);
     printf("Alpha Cuts: %d\n", ALPHA_CUT);
     printf("Beta Cuts: %d\n", BETA_CUT);
+	printf("Queue pos: %d\n", Q.pop_pos);
 
     // Fix best_score
     for(i=0; i<32; i++) {
@@ -945,7 +976,7 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
 
 int main() {
     int i, j;
-    int player = -1, max_depth = 10;
+    int player = -1, max_depth = 20;
     int F[8][8];
     struct moviment * best_move;
 
@@ -969,7 +1000,7 @@ int main() {
     
     while(1) {
         best_move = alpha_beta(F, max_depth, player);
-        printf("Mov : %d, %d -> %d %d\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y);
+        printf("Mov : %d, %d -> %d %d ; Counter: %d\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter);
 
         // Print Field for debug reasons.
         print_field(F);
