@@ -121,7 +121,21 @@ class ChessInterface(QtGui.QWidget):
 
 
     def on_click(self):
-        print("coming soon")
+        #print("coming soon")
+        command=["../alpha_beta"]
+        for i in xrange(0,8):
+            for j in xrange(7,-1,-1):
+                command.append(str(self.board[j][i]))
+                #print(self.board[j][i]),
+           #print("")
+        print(command)
+        proc=subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE,stdin=subprocess.PIPE)
+        proc.stdin.write('q\n')
+        out, err = proc.communicate()
+        proc.wait()
+        print(out)
+        print("ended")
+
     def initBoard(self):
         board=self.board
         board[0][0]=7
