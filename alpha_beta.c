@@ -861,6 +861,7 @@ int update_score(struct stack * best_score, int depth, struct queue * Q, struct 
                 best_move->pos_y = next->pos_y;
                 best_move->k_index = next->k_index;
                 best_move->d_counter = next->d_counter;
+                best_move->refresh = 1;
                 //printf("Mov : %d, %d -> %d %d ; Counter: %d\n", next->l_pos_x, next->l_pos_y, next->pos_x, next->pos_y, next->d_counter);
                 //printf("Mov : %d, %d -> %d %d ; Counter: %d\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter);
             }
@@ -967,6 +968,7 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
     best_score = (struct stack *) malloc (sizeof(struct stack)*(max_depth+1)); 
     mov_counter = (int *) malloc (sizeof(int)*(max_depth+1));
     best_move = (struct moviment *) malloc(sizeof(struct moviment));
+    best_move->refresh = 0;
 
     //printf("Finding alpha_beta for: [Score : %lf]\n", score);
     //printf("Queue pos: %d\n", Q.pop_pos);
@@ -1001,7 +1003,7 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
             // If it's in the max depth OR a king is dead OR couldn't find someone.
             if((depth >= max_depth)||(u_ret == 2)||(abs(best_score[depth].score) == 999999)) {
                 if(u_ret == 2)
-                printf(".SCORE UPDATED TO %lf in depth %d\n", current_score, depth);
+                //printf(".SCORE UPDATED TO %lf in depth %d\n", current_score, depth);
                 best_score[depth].score = current_score;
             }
             depth--;
@@ -1103,14 +1105,20 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
     free_queue(&Q);
     free(best_score);
     free(mov_counter);
-    apply_move(F,P,best_move);
+
+    if(best_move->refresh == 0) {
+        printf("ERROR: Couldn't find move.\n");
+    }
+    else {
+        apply_move(F,P,best_move);
+    }
     return best_move;
 }
 
 int main(int argc,char *argv[]) {
     int i, j; 
     char c='c';
-    int player = 1, max_depth = 5;
+    int player = 1, max_depth = 6;
     int F[8][8];
     struct moviment * best_move;
 
@@ -1127,7 +1135,7 @@ int main(int argc,char *argv[]) {
     }
 
 // Example 1: Initial Board 
-/*
+
     F[0][0] = -castle;  F[1][0] = -knight;  F[2][0] = -bishop;  F[3][0] = -queen;
     F[4][0] = -king;    F[5][0] = -bishop;  F[6][0] = -knight;  F[7][0] = -castle;
     F[0][1] = -pawn;    F[1][1] = -pawn;    F[2][1] = -pawn;    F[3][1] = -pawn;
@@ -1136,7 +1144,7 @@ int main(int argc,char *argv[]) {
     F[4][6] =  pawn;    F[5][6] =  pawn;    F[6][6] =  pawn;    F[7][6] =  pawn;
     F[0][7] = castle;   F[1][7] = knight;   F[2][7] = bishop;   F[3][7] = queen;
     F[4][7] = king;     F[5][7] = bishop;   F[6][7] = knight;   F[7][7] = castle;
-*/
+
 
 // Example 2 : Easy Check-Mate
 /*
@@ -1153,7 +1161,9 @@ int main(int argc,char *argv[]) {
 */
 
 // Example 4 : Bug
+/*    
     F[6][3] = -pawn;    F[6][6] = king;     F[5][5] = -king;    F[7][5] = -castle;
+*/
 
     }else{
         for(i=0; i<8; i++) {
