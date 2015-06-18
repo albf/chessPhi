@@ -1002,7 +1002,7 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
 
             // If it's in the max depth OR a king is dead OR couldn't find someone.
             if((depth >= max_depth)||(u_ret == 2)||(abs(best_score[depth].score) == 999999)) {
-                if(u_ret == 2)
+                //if(u_ret == 2)
                 //printf(".SCORE UPDATED TO %lf in depth %d\n", current_score, depth);
                 best_score[depth].score = current_score;
             }
