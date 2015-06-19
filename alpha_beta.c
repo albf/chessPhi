@@ -1357,7 +1357,7 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
     //        best_move->index = i;
     //    }
     //}
-    printf("Mov : %d, %d -> %d %d ; Counter: %d, Index: %d, k_index: %d\n", 
+    printf("Mov : %2d, %2d -> %2d %2d ; Counter: %d, Index: %d, k_index: %d\n", 
             best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter, best_move->index, best_move->k_index);
     print_player(P);
     

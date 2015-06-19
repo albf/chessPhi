@@ -121,20 +121,24 @@ class ChessInterface(QtGui.QWidget):
 
 
     def on_click(self):
-        #print("coming soon")
         command=["../alpha_beta"]
         for i in xrange(0,8):
             for j in xrange(7,-1,-1):
                 command.append(str(self.board[j][i]))
-                #print(self.board[j][i]),
-           #print("")
-        print(command)
         proc=subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE,stdin=subprocess.PIPE)
         proc.stdin.write('q\n')
         out, err = proc.communicate()
         proc.wait()
-        print(out)
-        print("ended")
+        search_for="Mov : "
+        index=out.find(search_for)
+        xbase=int(out[index+7:index+8])
+        ybase=int(out[index+11:index+12])
+        xdest=int(out[index+17:index+18])
+        ydest=int(out[index+20:index+21])
+        #print(xbase,ybase)
+        #print(xdest,ydest)
+        w = QWidget()
+        QMessageBox.information(w,"Action","Move ("+str(xbase)+","+str(ybase)+") -> ("+str(xdest)+","+str(ydest)+")","Ok")
 
     def initBoard(self):
         board=self.board
