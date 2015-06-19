@@ -52,6 +52,9 @@ struct moviment {
     int pos_y;                      // new Y value.
     int k_index;                    // Index of killed piece, if any. If not, -1.
     int refresh;                    // 1 if new moviment was found, -1 if not.
+    int pro_depth;                  // Promote depth, for pawns.
+    int pro_type;                   // Promote depth, for pawns.
+    int pro_sign;                   // Sign before promotion 
     int d_counter;                  // debug counter.
 };
 
@@ -73,7 +76,10 @@ struct stack{
 void init_queue(struct queue * Q, int size) {
     Q->size = size;
     Q->pop_pos = 0;
+    printf("sizeof: %d\n", sizeof(struct moviment));
+    printf("sizeof: %d\n", sizeof(struct moviment)*Q->size);
     Q->mov = (struct moviment *) malloc (sizeof(struct moviment)*Q->size);
+    printf("sizeof: %d\n", sizeof(Q->mov));
 }
 
 // Free queue memory.
@@ -112,61 +118,84 @@ struct moviment * get_next(struct queue * Q) {
 }
 
 // Undo a given move, returns difference in score.
-int undo_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov) { 
+int undo_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov, int depth) { 
+    // If the move was a promotion
+    if(mov->pro_depth == depth) {
+        if(mov->pro_type > 0) { 
+            P[mov->index][1] = pawn; 
+        }
+        else {
+            P[mov->index][1] = -pawn; 
+        }
+        P[mov->index][2] = pawn_value*mov->pro_sign;
+    }
+
     P[mov->index][3] = mov->l_pos_x;
     P[mov->index][4] = mov->l_pos_y;
     F[mov->l_pos_x][mov->l_pos_y] = P[mov->index][1];
+
     // Revive piece.
     if(mov->k_index >= 0) {
-        //printf("Undoing move : %d %d -> %d %d. Counter: %d\n", mov->l_pos_x, mov->l_pos_y, mov->pos_x, mov->pos_y, mov->d_counter);
-        //print_field(F);
-        //printf("\n");
-        
         F[mov->pos_x][mov->pos_y] = P[mov->k_index][1];
         P[mov->k_index][0] = 1;
-        //print_field(F);
         return P[mov->k_index][2];
     }
     else {
         F[mov->pos_x][mov->pos_y] = 0;
     }
-    //print_field(F);
     return 0;
 }
 
 // Apply a given move, return difference in score.
 int apply_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov) {
-    /*if(mov->d_counter == 3510294) {
-        printf("apply move 0 : %d, %d -> %d, %d ; index: %d \n", mov->l_pos_x, mov->l_pos_y, mov->pos_x, mov->pos_y, mov->index);
-        printf("DCOUNTER : %d\n", D_COUNTER);
-        print_field(F);
-        printf("\n");
-        print_player(P);
-        printf("\n");   
-    }*/
-    
+    int score_diff = 0;       
+
+    // Kill this piece.
+    if(mov->k_index >= 0) {
+        P[mov->k_index][0] = -1;
+        score_diff -= P[mov->k_index][2];
+    }
+
+    // Promotion of pawn
+    printf("mov->pro_depth: %d\n", mov->pro_depth);
+    if(mov->pro_depth >= 0) {
+        printf("Applying Promotion, mov_type:%d\n", mov->pro_type);
+        if(abs(mov->pro_type) == queen) {
+            score_diff = score_diff - ((pawn_value + queen_value)*mov->pro_sign);
+            P[mov->k_index][2] = queen_value*mov->pro_sign;
+        }
+        if(abs(mov->pro_type) == castle) {
+            score_diff = score_diff - ((pawn_value + castle_value)*mov->pro_sign);
+            P[mov->k_index][2] = castle_value*mov->pro_sign;
+        }
+        if(abs(mov->pro_type) == bishop) {
+            score_diff = score_diff - ((pawn_value + bishop_value)*mov->pro_sign);
+            P[mov->k_index][2] = bishop_value*mov->pro_sign;
+        }
+        if(abs(mov->pro_type) == knight) {
+            score_diff = score_diff - ((pawn_value + knight_value)*mov->pro_sign);
+            P[mov->k_index][2] = knight_value*mov->pro_sign;
+        }
+        P[mov->index][1] = mov->pro_type;
+        printf("Applying Promotion, mov_type:%d\n", mov->pro_type);
+    }
+
     P[mov->index][3] = mov->pos_x;
     P[mov->index][4] = mov->pos_y;
     F[mov->pos_x][mov->pos_y] = P[mov->index][1];
     F[mov->l_pos_x][mov->l_pos_y] = 0;
 
-    /*if(mov->d_counter == 3510294) {
-        print_field(F);
-        printf("end move 0\n");
-    }*/
+    printf("\n");
+    print_field(F);
 
-    // Kill this piece.
-    if(mov->k_index >= 0) {
-        P[mov->k_index][0] = -1;
-        return -P[mov->k_index][2];
-    }
-    return 0;
+    return score_diff;
 }
 
 // Return next nTH move in ret. If couldn't found, return -1 in ret->index. Don't apply the move.
-void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct moviment * ret, int player) {
-    int i, x, y, m_c=-1, pos;
+void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct moviment * ret, int player, int depth) {
+    int i, x, y, m_c=-1, pos, pro_depth = -1, pro_type = -1;
 
+    printf("ret:%d\n", ret);
     ret->d_counter = D_COUNTER;
     D_COUNTER++;
     
@@ -184,11 +213,48 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
             if(P[i][1] == -pawn) {
                 // Try to move foward. 
                 if(((y+1)<8) && (F[x][y+1]==0)) {
-                    m_c++;
-                    if(m_c == n) {
-                        ret->pos_x = x;
-                        ret->pos_y = y+1;
-                        break;
+                    if(y<6) {   // No Promotion
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x;
+                            ret->pos_y = y+1;
+                            break;
+                        }
+                    }
+                    else {      // Promotion
+                        printf("PROMOTION FINDING, DEPTH:%d\n", depth);
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = -queen;
+                            ret->pos_x = x;
+                            ret->pos_y = y+1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = -castle;
+                            ret->pos_x = x;
+                            ret->pos_y = y+1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = -bishop;
+                            ret->pos_x = x;
+                            ret->pos_y = y+1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = -knight;
+                            ret->pos_x = x;
+                            ret->pos_y = y+1;
+                            break;
+                        }
                     }
                 }
                 // Check if it's the first move and can move 2x foward.
@@ -203,22 +269,96 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
                 
                 // Try to get piece on foward-left
                 if(((y+1)<8) && ((x-1)>=0) && (F[x-1][y+1]>0)) {
-                    m_c++;  
-                    if(m_c == n) {
-                        ret->pos_x = x-1;
-                        ret->pos_y = y+1;
-                        break;
+                    if(y<6) {
+                        m_c++;  
+                        if(m_c == n) {
+                            ret->pos_x = x-1;
+                            ret->pos_y = y+1;
+                            break;
+                        }
                     }
+                    else {      // Promotion
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = -queen;
+                            ret->pos_x = x-1;
+                            ret->pos_y = y+1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = -castle;
+                            ret->pos_x = x-1;
+                            ret->pos_y = y+1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = -bishop;
+                            ret->pos_x = x-1;
+                            ret->pos_y = y+1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = -knight;
+                            ret->pos_x = x-1;
+                            ret->pos_y = y+1;
+                            break;
+                        }
+                    }
+
                 }
                 
                 // Try to get piece on foward-right
                 if(((y+1)<8) && ((x+1)<8) && (F[x+1][y+1]>0)) {
-                    m_c++;  
-                    if(m_c == n) {
-                        ret->pos_x = x+1;
-                        ret->pos_y = y+1;
-                        break;
+                    if(y<6) {
+                        m_c++;  
+                        if(m_c == n) {
+                            ret->pos_x = x+1;
+                            ret->pos_y = y+1;
+                            break;
+                        }
                     }
+                    else {      // Promotion
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = -queen;
+                            ret->pos_x = x+1;
+                            ret->pos_y = y+1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = -castle;
+                            ret->pos_x = x+1;
+                            ret->pos_y = y+1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = -bishop;
+                            ret->pos_x = x+1;
+                            ret->pos_y = y+1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = -knight;
+                            ret->pos_x = x+1;
+                            ret->pos_y = y+1;
+                            break;
+                        }
+                    }
+
                 }
             }
             // White castles
@@ -445,12 +585,49 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
                 if(P[i][1] == pawn) {
                 // Try to move foward. 
                 if(((y-1)>=0) && (F[x][y-1]==0)) {
-                    m_c++;
-                    if(m_c == n) {
-                        ret->pos_x = x;
-                        ret->pos_y = y-1;
-                        break;
+                    if(y>1) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x;
+                            ret->pos_y = y-1;
+                            break;
+                        }
                     }
+                    else {      // Promotion
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = queen;
+                            ret->pos_x = x;
+                            ret->pos_y = y-1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = castle;
+                            ret->pos_x = x;
+                            ret->pos_y = y-1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = bishop;
+                            ret->pos_x = x;
+                            ret->pos_y = y-1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = knight;
+                            ret->pos_x = x;
+                            ret->pos_y = y-1;
+                            break;
+                        }
+                    }
+
                 }
                 // Check if it's the first move and can move 2x foward.
                 if((y==6) && (F[x][y-1]==0) && (F[x][y-2]==0)) {
@@ -464,22 +641,96 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
                 
                 // Try to get piece on foward-left
                 if(((y-1)>=0) && ((x-1)>=0) && (F[x-1][y-1]<0)) {
-                    m_c++;  
-                    if(m_c == n) {
-                        ret->pos_x = x-1;
-                        ret->pos_y = y-1;
-                        break;
+                    if(y>1) {
+                        m_c++;  
+                        if(m_c == n) {
+                            ret->pos_x = x-1;
+                            ret->pos_y = y-1;
+                            break;
+                        }
                     }
+                    else {      // Promotion
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = queen;
+                            ret->pos_x = x-1;
+                            ret->pos_y = y-1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = castle;
+                            ret->pos_x = x-1;
+                            ret->pos_y = y-1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = bishop;
+                            ret->pos_x = x-1;
+                            ret->pos_y = y-1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = knight;
+                            ret->pos_x = x-1;
+                            ret->pos_y = y-1;
+                            break;
+                        }
+                    }
+
                 }
                 
                 // Try to get piece on foward-right
                 if(((y-1)>=0) && ((x+1)<8) && (F[x+1][y-1]<0)) {
-                    m_c++;  
-                    if(m_c == n) {
-                        ret->pos_x = x+1;
-                        ret->pos_y = y-1;
-                        break;
+                    if(y>1) {
+                        m_c++;  
+                        if(m_c == n) {
+                            ret->pos_x = x+1;
+                            ret->pos_y = y-1;
+                            break;
+                        }
                     }
+                    else {      // Promotion
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = queen;
+                            ret->pos_x = x+1;
+                            ret->pos_y = y-1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = castle;
+                            ret->pos_x = x+1;
+                            ret->pos_y = y-1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = bishop;
+                            ret->pos_x = x+1;
+                            ret->pos_y = y-1;
+                            break;
+                        }
+                        m_c++;
+                        if(m_c == n) {
+                            pro_depth = depth;
+                            pro_type = knight;
+                            ret->pos_x = x+1;
+                            ret->pos_y = y-1;
+                            break;
+                        }
+                    }
+
                 }
             }
             
@@ -713,6 +964,15 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
         ret->index = i;
         ret->l_pos_x = P[i][3];
         ret->l_pos_y = P[i][4];
+        ret->pro_depth = pro_depth;
+        ret->pro_type = pro_type;
+        if(P[i][2] > 0) {
+            ret->pro_sign = 1;
+        }
+        else {
+            ret->pro_sign = -1;
+        }
+
         if(F[ret->pos_x][ret->pos_y]!=0) {
             // Marcus, sei que "i" podia ser usado aqui. Compilador cuida disso.
             for(pos=0; pos<32; pos++) {
@@ -1011,8 +1271,9 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
                 break;
             }
             u_ret = update_score(best_score, depth, &Q, best_move);
+            printf("Pop\n");
             mov = pop_mov(&Q);
-            current_score += undo_move(F,P,mov);
+            current_score += undo_move(F,P,mov, depth);
             //current_score += depth_factor;
             //printf("\nUndo Move. Score %lf\n", current_score);
             //print_field(F);
@@ -1023,7 +1284,10 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
         }
         else {                                                      // If can expand, try!
             next = alloc_mov(&Q);                                   // Get new move.
-            find_nth_move(F, P, mov_counter[depth], next, player);  // Find next move.
+            printf("Alloc next:%d\n", next);
+            printf("Q:%d\n", Q.mov);
+            printf("Q->size:%d\n", sizeof(Q.mov));
+            find_nth_move(F, P, mov_counter[depth], next, player, depth);  // Find next move.
             //printf("Finding move: mov_counter[depth:%d]:%d, player:%d\n", depth, mov_counter[depth], player);
             //print_field(F);
             mov_counter[depth]++;                                   // Update depth counter.
@@ -1080,6 +1344,7 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
             else {
                 //printf("Couldn't found move, depth:%d\n", depth);
                 //printf("Couldn't find move\n");
+                printf("Pop \n");
                 pop_mov(&Q);
                 u_ret = 1;
                 mov_counter[depth] = 0;
@@ -1118,7 +1383,7 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
 int main(int argc,char *argv[]) {
     int i, j; 
     char c='c';
-    int player = 1, max_depth = 6;
+    int player = -1, max_depth = 2;
     int F[8][8];
     struct moviment * best_move;
 
@@ -1135,7 +1400,7 @@ int main(int argc,char *argv[]) {
     }
 
 // Example 1: Initial Board 
-
+/*
     F[0][0] = -castle;  F[1][0] = -knight;  F[2][0] = -bishop;  F[3][0] = -queen;
     F[4][0] = -king;    F[5][0] = -bishop;  F[6][0] = -knight;  F[7][0] = -castle;
     F[0][1] = -pawn;    F[1][1] = -pawn;    F[2][1] = -pawn;    F[3][1] = -pawn;
@@ -1144,7 +1409,7 @@ int main(int argc,char *argv[]) {
     F[4][6] =  pawn;    F[5][6] =  pawn;    F[6][6] =  pawn;    F[7][6] =  pawn;
     F[0][7] = castle;   F[1][7] = knight;   F[2][7] = bishop;   F[3][7] = queen;
     F[4][7] = king;     F[5][7] = bishop;   F[6][7] = knight;   F[7][7] = castle;
-
+*/
 
 // Example 2 : Easy Check-Mate
 /*
@@ -1164,6 +1429,13 @@ int main(int argc,char *argv[]) {
 /*    
     F[6][3] = -pawn;    F[6][6] = king;     F[5][5] = -king;    F[7][5] = -castle;
 */
+
+// Example 5 : Just 2 Kings. Will one kill each other?
+
+    //F[6][6] = king;     F[6][5] = -king;    
+    F[5][6] = -pawn;    F[4][1] = pawn;
+    //F[1][2] = castle;
+
 
     }else{
         for(i=0; i<8; i++) {
