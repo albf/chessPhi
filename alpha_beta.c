@@ -1188,7 +1188,9 @@ int update_score(struct stack * best_score, int depth, struct queue * Q, struct 
 
 void print_field(int F[8][8]) {
     int i,j;
-    
+   
+    printf("Board:\n");
+
     // Print Field for debug reasons.
     for(i=7; i>=0; i--) {
         for(j=0; j<8; j++) {
