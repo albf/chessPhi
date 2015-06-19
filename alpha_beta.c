@@ -42,6 +42,7 @@ void print_player(int P[num_pieces][num_col]);
 int ALPHA_CUT = 0;
 int BETA_CUT = 0;
 int D_COUNTER = 0;
+struct queue *QQ = NULL;
 
 // Represents a past moviment.
 struct moviment { 
@@ -76,10 +77,7 @@ struct stack{
 void init_queue(struct queue * Q, int size) {
     Q->size = size;
     Q->pop_pos = 0;
-    printf("sizeof: %d\n", sizeof(struct moviment));
-    printf("sizeof: %d\n", sizeof(struct moviment)*Q->size);
     Q->mov = (struct moviment *) malloc (sizeof(struct moviment)*Q->size);
-    printf("sizeof: %d\n", sizeof(Q->mov));
 }
 
 // Free queue memory.
@@ -98,7 +96,9 @@ void assign_size(struct queue * Q) {
 // Alloc mov into queue. Return pointer with moviment.
 struct moviment * alloc_mov(struct queue * Q) {
     assign_size(Q);
+    printf("POS ALLOC: %d\n", Q->pop_pos-1);
     Q->pop_pos++;
+    printf("POS ALLOC: %d\n", Q->pop_pos-1);
     return &(Q->mov[Q->pop_pos-1]);
 }
 
@@ -109,6 +109,7 @@ struct moviment * pop_mov(struct queue * Q) {
         printf("Error, pop_mov from empty list");
         return NULL;
     }
+    printf("POS POP: %d\n", Q->pop_pos-1);
     return &(Q->mov[Q->pop_pos]);
 }
 
@@ -150,19 +151,29 @@ int undo_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov, in
 int apply_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov) {
     int score_diff = 0;       
 
+    printf("QQ->pos:%d\n", QQ->pop_pos);
+
     // Kill this piece.
     if(mov->k_index >= 0) {
         P[mov->k_index][0] = -1;
         score_diff -= P[mov->k_index][2];
     }
 
+    printf("QQ->pos:%d\n", QQ->pop_pos);
+
     // Promotion of pawn
     printf("mov->pro_depth: %d\n", mov->pro_depth);
     if(mov->pro_depth >= 0) {
         printf("Applying Promotion, mov_type:%d\n", mov->pro_type);
         if(abs(mov->pro_type) == queen) {
+
+    printf("01 - QQ->pos:%d\n", QQ->pop_pos);
             score_diff = score_diff - ((pawn_value + queen_value)*mov->pro_sign);
+
+    printf("02 - QQ->pos:%d\n", QQ->pop_pos);
             P[mov->k_index][2] = queen_value*mov->pro_sign;
+
+    printf("03 - QQ->pos:%d\n", QQ->pop_pos);
         }
         if(abs(mov->pro_type) == castle) {
             score_diff = score_diff - ((pawn_value + castle_value)*mov->pro_sign);
@@ -176,9 +187,12 @@ int apply_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov) {
             score_diff = score_diff - ((pawn_value + knight_value)*mov->pro_sign);
             P[mov->k_index][2] = knight_value*mov->pro_sign;
         }
+
         P[mov->index][1] = mov->pro_type;
         printf("Applying Promotion, mov_type:%d\n", mov->pro_type);
     }
+
+    printf("QQ->pos:%d\n", QQ->pop_pos);
 
     P[mov->index][3] = mov->pos_x;
     P[mov->index][4] = mov->pos_y;
@@ -1230,6 +1244,8 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
     best_move = (struct moviment *) malloc(sizeof(struct moviment));
     best_move->refresh = 0;
 
+    QQ = &Q;
+
     //printf("Finding alpha_beta for: [Score : %lf]\n", score);
     //printf("Queue pos: %d\n", Q.pop_pos);
     //print_field(F);
@@ -1287,12 +1303,16 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player) {
             printf("Alloc next:%d\n", next);
             printf("Q:%d\n", Q.mov);
             printf("Q->size:%d\n", sizeof(Q.mov));
+            printf("Q->:pose%d\n", Q.pop_pos); 
             find_nth_move(F, P, mov_counter[depth], next, player, depth);  // Find next move.
+            printf("Q->:pose%d\n", Q.pop_pos); 
             //printf("Finding move: mov_counter[depth:%d]:%d, player:%d\n", depth, mov_counter[depth], player);
             //print_field(F);
             mov_counter[depth]++;                                   // Update depth counter.
             if(next->refresh > 0) {                                 // If valid move was found.
+            printf("XXQ->:pose%d\n", Q.pop_pos); 
                 current_score += apply_move(F,P,next);
+            printf("YYQ->:pose%d\n", Q.pop_pos); 
                 //current_score -= depth_factor;
                 depth++;
                 player = player * -1;                               // Invert player.
