@@ -4,7 +4,7 @@
 #disclaimer block
 
 # Marcus Botacin
-# Alexandre 
+# Alexandre Brisighello 
 # Unicamp 2015 Guido
 
 #import block
@@ -119,22 +119,63 @@ class ChessInterface(QtGui.QWidget):
                 if(piece==-1):
                     return "images/king_white_on_black.png"
 
-
-    def on_click(self):
-        #print("coming soon")
+    def on_click2(self):
+        #for i in xrange(0,8):
+        #    for j in xrange(0,8):
+        #        print(self.board[i][j]),
+        #    print("")
         command=["../alpha_beta"]
         for i in xrange(0,8):
             for j in xrange(7,-1,-1):
                 command.append(str(self.board[j][i]))
-                #print(self.board[j][i]),
-           #print("")
-        print(command)
         proc=subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE,stdin=subprocess.PIPE)
         proc.stdin.write('q\n')
         out, err = proc.communicate()
         proc.wait()
-        print(out)
-        print("ended")
+        search_for="Changing player"
+        index=out.find(search_for)
+        l=[]
+        for j in xrange(0,8):
+            for i in xrange(0,8):
+                #print(out[index-5:index-2]),
+                l.append(out[index-5:index-2])
+                index=index-4
+            #print("")
+            index=index-1
+        for i in xrange(0,8):
+            for j in xrange(0,8):
+                self.board[i][j]=l[63-(8*i)-j]
+                label = QLabel()
+                pixmap=QPixmap(self.img_name(i,j,self.board[i][j]))
+                label.setPixmap(pixmap)
+                label.show()
+                self.grid.addWidget(label,i,j)
+
+                #print(self.board[i][j]),
+            #print("")
+
+
+
+
+    def on_click(self):
+        command=["../alpha_beta"]
+        for i in xrange(0,8):
+            for j in xrange(7,-1,-1):
+                command.append(str(self.board[j][i]))
+        proc=subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE,stdin=subprocess.PIPE)
+        proc.stdin.write('q\n')
+        out, err = proc.communicate()
+        proc.wait()
+        search_for="Mov : "
+        index=out.find(search_for)
+        xbase=int(out[index+7:index+8])
+        ybase=int(out[index+11:index+12])
+        xdest=int(out[index+17:index+18])
+        ydest=int(out[index+20:index+21])
+        #print(xbase,ybase)
+        #print(xdest,ydest)
+        w = QWidget()
+        QMessageBox.information(w,"Action","Move ("+str(xbase)+","+str(ybase)+") -> ("+str(xdest)+","+str(ydest)+")","Ok")
 
     def initBoard(self):
         board=self.board
@@ -232,11 +273,16 @@ class ChessInterface(QtGui.QWidget):
         btn.clicked.connect(exit)
         btn.resize(btn.sizeHint())
         self.grid.addWidget(btn,0,8)
-        btn=QPushButton('Tip!',w)
+        btn=QPushButton('Serial Tip!',w)
         btn.setToolTip('Click to get a hint!')
         btn.clicked.connect(self.on_click)
         btn.resize(btn.sizeHint())
         self.grid.addWidget(btn,1,8)
+        btn=QPushButton('Serial Move!',w)
+        btn.setToolTip('Click to get a move!')
+        btn.clicked.connect(self.on_click2)
+        btn.resize(btn.sizeHint())
+        self.grid.addWidget(btn,2,8)
 
         self.grid.setHorizontalSpacing(0)
         self.grid.setVerticalSpacing(0)
