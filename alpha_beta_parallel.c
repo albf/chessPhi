@@ -1426,22 +1426,22 @@ void *Controller_Thread(void *args)
 
 	/* Spread tree */
 
+
 	do{
-			printf("Try mov %d\n",mov_counter[depth]);
 			next = alloc_mov(&global_Q);                                   // Get new move.
+			printf("Try mov %d\n",mov_counter[depth]);
 			find_nth_move(myargs.F, P, mov_counter[depth], next, myargs.player, depth);  // Find next move.
 			mov_counter[depth]++;
-
 	}while(next->refresh > 0);
 
 
-	on_queue=mov_counter[depth];
+	on_queue=mov_counter[depth]-1;
 	init=1;
 	printf("rodando com on_queue=%d\n",on_queue);
 	/* results join */
 
 	sem_wait(&semaphore);
-	while(terminated!=mov_counter[depth])
+	while(terminated!=mov_counter[depth]-1)
 	{
 		sem_post(&semaphore);
 		sem_wait(&semaphore);
@@ -1508,7 +1508,7 @@ int main(int argc,char *argv[]) {
 		}
 
 		// Example 1: Initial Board 
-		/*
+		
 		   F[0][0] = -castle;  F[1][0] = -knight;  F[2][0] = -bishop;  F[3][0] = -queen;
 		   F[4][0] = -king;    F[5][0] = -bishop;  F[6][0] = -knight;  F[7][0] = -castle;
 		   F[0][1] = -pawn;    F[1][1] = -pawn;    F[2][1] = -pawn;    F[3][1] = -pawn;
@@ -1517,7 +1517,7 @@ int main(int argc,char *argv[]) {
 		   F[4][6] =  pawn;    F[5][6] =  pawn;    F[6][6] =  pawn;    F[7][6] =  pawn;
 		   F[0][7] = castle;   F[1][7] = knight;   F[2][7] = bishop;   F[3][7] = queen;
 		   F[4][7] = king;     F[5][7] = bishop;   F[6][7] = knight;   F[7][7] = castle;
-		   */
+		   
 
 		// Example 2 : Easy Check-Mate
 		/*
@@ -1541,7 +1541,7 @@ int main(int argc,char *argv[]) {
 		// Example 5 : Just 2 Kings. Will one kill each other?
 
 		//F[6][6] = king;     F[6][5] = -king;    
-		F[5][6] = -pawn;    F[4][1] = pawn;
+		//F[5][6] = -pawn;    F[4][1] = pawn;
 		//F[1][2] = castle;
 
 
