@@ -1397,7 +1397,16 @@ typedef struct args
 }Targs;
 
 
-struct queue global_Q;
+typedef struct sQ
+{
+	int **F;
+	int player;
+	double score;
+	struct moviment next;
+}Queue;
+
+Queue global_Q[64];
+
 pthread_mutex_t q_lock;
 sem_t semaphore;
 
@@ -1407,10 +1416,12 @@ int init=0;
 
 void *Controller_Thread(void *args)
 {
+	int **F;
+	int i,j;
 	int P[num_pieces][num_col];
 	int depth=0;
 	Targs myargs=*((Targs*)args);
-	struct moviment * next;
+	struct moviment next;
 
 
 	int *mov_counter;
@@ -1426,13 +1437,32 @@ void *Controller_Thread(void *args)
 
 	/* Spread tree */
 
-
 	do{
-			next = alloc_mov(&global_Q);                                   // Get new move.
 			printf("Try mov %d\n",mov_counter[depth]);
-			find_nth_move(myargs.F, P, mov_counter[depth], next, myargs.player, depth);  // Find next move.
+			find_nth_move(myargs.F, P, mov_counter[depth], &next, myargs.player, depth);  // Find next move.
+	
+			/* copy F */
+			F=(int**)malloc(sizeof(int*)*8);
+			for(i=0;i<8;i++)
+			{
+				F[i]=(int*)malloc(sizeof(int)*8);
+			}
+			for(i=0;i<8;i++)
+			{
+				for(j=0;j<8;j++)
+				{
+					F[i][j]=myargs.F[i][j];
+				}
+			}
+
+			global_Q[mov_counter[depth]].F=F;	
+			global_Q[mov_counter[depth]].player=myargs.player*-1;
+			global_Q[mov_counter[depth]].score=current_score+apply_move(myargs.F, P, &next);
+			global_Q[mov_counter[depth]].next=next;
+			//print_field(F);
+			undo_move(myargs.F, P, &next, depth);
 			mov_counter[depth]++;
-	}while(next->refresh > 0);
+	}while(next.refresh > 0);
 
 
 	on_queue=mov_counter[depth]-1;
@@ -1449,9 +1479,7 @@ void *Controller_Thread(void *args)
 	sem_post(&semaphore);
 	printf("threads joined\n");
 
-
 	free(mov_counter);
-	free_queue(&global_Q);
 	return NULL;
 }
 
@@ -1459,23 +1487,29 @@ void *Controller_Thread(void *args)
 
 void *Worker_Thread()
 {
-
-	struct moviment * mov;
+	Queue mov;
 	printf("I'm a Worker\n");
 
 
 	sem_wait(&semaphore);
 	while(init==0 || on_queue>0)
 	{
+		
 		if(init==1){
-			mov = pop_mov(&global_Q);
-			printf("pop'ed mov %d %d to %d %d\n",mov->l_pos_x,mov->l_pos_y,mov->pos_x,mov->pos_y);
+			mov = global_Q[on_queue-1];
+			printf("pop'ed mov %d %d to %d %d\n",mov.next.l_pos_x,mov.next.l_pos_y,mov.next.pos_x,mov.next.pos_y);
+			sem_post(&semaphore);
+
+			
+
+			sem_wait(&semaphore);
 			on_queue--;
 			terminated++;
 			printf("set terminated == %d\nset on_queue=%d\n",terminated,on_queue);
 		}
 		sem_post(&semaphore);
 		sem_wait(&semaphore);
+		
 	}
 	sem_post(&semaphore);
 	
@@ -1565,7 +1599,6 @@ int main(int argc,char *argv[]) {
 	printf("pushing score %d\n",score);
 
 
-	init_queue(&global_Q, max_depth);              // Init queue
 
 	pthread_mutex_init(&q_lock,NULL);
 
