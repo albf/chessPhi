@@ -1465,12 +1465,13 @@ void *Controller_Thread(void *args)
 	}while(next.refresh > 0);
 
 
+	sem_wait(&semaphore);
 	on_queue=mov_counter[depth]-1;
 	init=1;
 	printf("rodando com on_queue=%d\n",on_queue);
 	/* results join */
 
-	sem_wait(&semaphore);
+
 	while(terminated!=mov_counter[depth]-1)
 	{
 		sem_post(&semaphore);
@@ -1498,14 +1499,14 @@ void *Worker_Thread()
 		if(init==1){
 			mov = global_Q[on_queue-1];
 			printf("pop'ed mov %d %d to %d %d\n",mov.next.l_pos_x,mov.next.l_pos_y,mov.next.pos_x,mov.next.pos_y);
+			on_queue--;
 			sem_post(&semaphore);
 
-			
+			print_field(mov.F);	
 
 			sem_wait(&semaphore);
-			on_queue--;
 			terminated++;
-			printf("set terminated == %d\nset on_queue=%d\n",terminated,on_queue);
+			printf("set terminated == %d\n",terminated);
 		}
 		sem_post(&semaphore);
 		sem_wait(&semaphore);
@@ -1520,10 +1521,10 @@ void *Worker_Thread()
 
 int main(int argc,char *argv[]) {
 	int i, j, score,threads=60; 
-	char c='c';
+	//char c='c';
 	int player = -1, max_depth = 2;
 	int F[8][8];
-	struct moviment * best_move;
+	//struct moviment * best_move;
 	pthread_t* worker_thread_handles;
 	pthread_t main_thread_handle;
 
