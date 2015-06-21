@@ -1401,8 +1401,9 @@ typedef struct sQ
 {
 	int **F;
 	int player;
-	double score;
+	int score;
 	struct moviment next;
+	int max_depth;
 }Queue;
 
 Queue global_Q[64];
@@ -1452,6 +1453,7 @@ void *Controller_Thread(void *args)
 			global_Q[mov_counter[depth]].player=myargs.player*-1;
 			global_Q[mov_counter[depth]].score=current_score+apply_move(myargs.F, P, &next);
 			global_Q[mov_counter[depth]].next=next;
+			global_Q[mov_counter[depth]].max_depth=myargs.max_depth;
 			print_field(myargs.F);
 			for(i=0;i<8;i++)
 			{
@@ -1481,6 +1483,12 @@ void *Controller_Thread(void *args)
 	sem_post(&semaphore);
 	printf("threads joined\n");
 
+	for(i=0;i<mov_counter[depth];i++)
+	{
+		printf("%d|Score:%d\n",i,global_Q[i].score);
+	}
+
+
 	free(mov_counter);
 	return NULL;
 }
@@ -1492,6 +1500,7 @@ void *Worker_Thread()
 	int F[8][8];
 	int i,j;
 	Queue mov;
+	struct moviment *best_move;
 	printf("I'm a Worker\n");
 
 
@@ -1503,7 +1512,8 @@ void *Worker_Thread()
 			mov = global_Q[on_queue-1];
 			printf("pop'ed mov %d %d to %d %d\n",mov.next.l_pos_x,mov.next.l_pos_y,mov.next.pos_x,mov.next.pos_y);
 			on_queue--;
-			sem_post(&semaphore);
+		
+			//sem_post(&semaphore);
 
 
 		
@@ -1519,8 +1529,14 @@ void *Worker_Thread()
 			} 
 			free(mov.F);
 
-			print_field(F);	
-			sem_wait(&semaphore);
+			//print_field(F);	
+
+
+			best_move = alpha_beta(F, mov.max_depth, mov.player, &mov.score);
+
+			printf("result %d %d %d %d\n",best_move->l_pos_x,best_move->l_pos_y,best_move->pos_x,best_move->l_pos_y);
+
+			//sem_wait(&semaphore);
 			terminated++;
 			printf("set terminated == %d\n",terminated);
 		}
