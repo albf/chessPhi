@@ -1489,6 +1489,8 @@ void *Controller_Thread(void *args)
 
 void *Worker_Thread()
 {
+	int F[8][8];
+	int i,j;
 	Queue mov;
 	printf("I'm a Worker\n");
 
@@ -1503,8 +1505,21 @@ void *Worker_Thread()
 			on_queue--;
 			sem_post(&semaphore);
 
-			//print_field(mov.F);	
 
+		
+			for(i=0;i<8;i++)
+			{
+				for(j=0;j<8;j++)
+				{
+					F[i][j]=mov.F[i][j];
+					//printf("%2d ",mov.F[i][j]);
+				}
+				free(mov.F[i]);
+				//printf("\n");
+			} 
+			free(mov.F);
+
+			print_field(F);	
 			sem_wait(&semaphore);
 			terminated++;
 			printf("set terminated == %d\n",terminated);
