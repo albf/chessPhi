@@ -1447,6 +1447,12 @@ void *Controller_Thread(void *args)
 			{
 				F[i]=(int*)malloc(sizeof(int)*8);
 			}
+
+			global_Q[mov_counter[depth]].F=F;	
+			global_Q[mov_counter[depth]].player=myargs.player*-1;
+			global_Q[mov_counter[depth]].score=current_score+apply_move(myargs.F, P, &next);
+			global_Q[mov_counter[depth]].next=next;
+			print_field(myargs.F);
 			for(i=0;i<8;i++)
 			{
 				for(j=0;j<8;j++)
@@ -1455,11 +1461,6 @@ void *Controller_Thread(void *args)
 				}
 			}
 
-			global_Q[mov_counter[depth]].F=F;	
-			global_Q[mov_counter[depth]].player=myargs.player*-1;
-			global_Q[mov_counter[depth]].score=current_score+apply_move(myargs.F, P, &next);
-			global_Q[mov_counter[depth]].next=next;
-			//print_field(F);
 			undo_move(myargs.F, P, &next, depth);
 			mov_counter[depth]++;
 	}while(next.refresh > 0);
@@ -1502,7 +1503,7 @@ void *Worker_Thread()
 			on_queue--;
 			sem_post(&semaphore);
 
-			print_field(mov.F);	
+			//print_field(mov.F);	
 
 			sem_wait(&semaphore);
 			terminated++;
