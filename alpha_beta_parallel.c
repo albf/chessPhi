@@ -1483,11 +1483,19 @@ void *Controller_Thread(void *args)
 	sem_post(&semaphore);
 	printf("threads joined\n");
 
+	int max=0;
+	int i_max=0;
 	for(i=0;i<mov_counter[depth];i++)
 	{
 		printf("%d|Score:%d\n",i,global_Q[i].score);
+		if(global_Q[i].score>max)
+		{
+			max=global_Q[i].score;
+			i_max=i;
+		}
 	}
 
+	printf("Best Move (%d,%d) -> (%d,%d)\n",global_Q[i_max].next.l_pos_x,global_Q[i_max].next.l_pos_y,global_Q[i_max].next.pos_x,global_Q[i_max].next.pos_y);
 
 	free(mov_counter);
 	return NULL;
@@ -1574,8 +1582,22 @@ int main(int argc,char *argv[]) {
 			}
 		}
 
-		// Example 1: Initial Board 
+		// teste
 		
+		   F[0][0] = -castle;  F[1][0] = -knight;  F[2][0] = -bishop;  F[3][0] = -queen;
+		   F[4][0] = -king;    F[5][0] = -bishop;  F[6][0] = -knight;  F[7][0] = -castle;
+		   F[0][1] = -pawn;    F[1][1] = -pawn;    F[2][1] = -pawn;    F[3][1] = -pawn;
+		   F[4][5] = -pawn;    F[5][1] = -pawn;    F[6][1] = -pawn;    F[7][1] = -pawn;
+		   F[0][6] =  pawn;    F[1][6] =  pawn;    F[2][6] =  pawn;    F[3][6] =  pawn;
+		   F[4][6] =  pawn;    F[5][6] =  pawn;    F[6][6] =  pawn;    F[7][6] =  pawn;
+		   F[0][7] = castle;   F[1][7] = knight;   F[2][7] = bishop;   F[3][7] = queen;
+		   F[4][7] = king;     F[5][7] = bishop;   F[6][7] = knight;   F[7][7] = castle;
+
+
+
+		// Example 1: Initial Board 
+
+		/*
 		   F[0][0] = -castle;  F[1][0] = -knight;  F[2][0] = -bishop;  F[3][0] = -queen;
 		   F[4][0] = -king;    F[5][0] = -bishop;  F[6][0] = -knight;  F[7][0] = -castle;
 		   F[0][1] = -pawn;    F[1][1] = -pawn;    F[2][1] = -pawn;    F[3][1] = -pawn;
@@ -1584,15 +1606,17 @@ int main(int argc,char *argv[]) {
 		   F[4][6] =  pawn;    F[5][6] =  pawn;    F[6][6] =  pawn;    F[7][6] =  pawn;
 		   F[0][7] = castle;   F[1][7] = knight;   F[2][7] = bishop;   F[3][7] = queen;
 		   F[4][7] = king;     F[5][7] = bishop;   F[6][7] = knight;   F[7][7] = castle;
-		   
+		  */ 
 
 		// Example 2 : Easy Check-Mate
+
+
 		/*
 		   F[4][0] = -king;    F[7][0] = -castle;
 		   F[0][6] =  pawn;    F[1][6] =  pawn;    F[2][6] =  pawn;    F[3][6] =  pawn;
 		   F[4][6] =  pawn;    F[5][6] =  pawn;    F[6][6] =  pawn;    
 		   F[4][7] = king;     
-		   */
+		  */ 
 
 		// Example 3 : Easy Check-Mate 2
 		/*
