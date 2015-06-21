@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-
+#include<semaphore.h>
 // Pieces tables defines.
 // [isAlive, type, value, pos x, pos y]
 #define num_pieces 32
@@ -1397,14 +1397,22 @@ typedef struct args
 }Targs;
 
 
+struct queue global_Q;
+pthread_mutex_t q_lock;
+sem_t semaphore;
+
+int on_queue=0;
+int terminated=0;
+int init=0;
+
 void *Controller_Thread(void *args)
 {
 	int P[num_pieces][num_col];
 	int depth=0;
 	Targs myargs=*((Targs*)args);
 	struct moviment * next;
-	struct queue Q;
-	init_queue(&Q, myargs.max_depth);              // Init queue
+
+
 	int *mov_counter;
 	double current_score;
 	mov_counter = (int *) malloc (sizeof(int)*(myargs.max_depth+1));
@@ -1414,15 +1422,36 @@ void *Controller_Thread(void *args)
 	printf("I'm the Brain\n");
 	printf("Max %d player %d score %d\n",myargs.max_depth,myargs.player,*(myargs.score));
 	mov_counter[depth]=0;
+
+
+	/* Spread tree */
+
 	do{
-			printf("Achou mov %d\n",mov_counter[depth]);
-			next = alloc_mov(&Q);                                   // Get new move.
+			printf("Try mov %d\n",mov_counter[depth]);
+			next = alloc_mov(&global_Q);                                   // Get new move.
 			find_nth_move(myargs.F, P, mov_counter[depth], next, myargs.player, depth);  // Find next move.
 			mov_counter[depth]++;
+
 	}while(next->refresh > 0);
 
+
+	on_queue=mov_counter[depth];
+	init=1;
+	printf("rodando com on_queue=%d\n",on_queue);
+	/* results join */
+
+	sem_wait(&semaphore);
+	while(terminated!=mov_counter[depth])
+	{
+		sem_post(&semaphore);
+		sem_wait(&semaphore);
+	}
+	sem_post(&semaphore);
+	printf("threads joined\n");
+
+
 	free(mov_counter);
-	free_queue(&Q);
+	free_queue(&global_Q);
 	return NULL;
 }
 
@@ -1430,7 +1459,26 @@ void *Controller_Thread(void *args)
 
 void *Worker_Thread()
 {
-	printf("I'm the Worker\n");
+
+	struct moviment * mov;
+	printf("I'm a Worker\n");
+
+
+	sem_wait(&semaphore);
+	while(init==0 || on_queue>0)
+	{
+		if(init==1){
+			mov = pop_mov(&global_Q);
+			printf("pop'ed mov %d %d to %d %d\n",mov->l_pos_x,mov->l_pos_y,mov->pos_x,mov->pos_y);
+			on_queue--;
+			terminated++;
+			printf("set terminated == %d\nset on_queue=%d\n",terminated,on_queue);
+		}
+		sem_post(&semaphore);
+		sem_wait(&semaphore);
+	}
+	sem_post(&semaphore);
+	
 	return NULL;
 }
 
@@ -1515,6 +1563,14 @@ int main(int argc,char *argv[]) {
 	args.player=player;
 	args.score=&score;
 	printf("pushing score %d\n",score);
+
+
+	init_queue(&global_Q, max_depth);              // Init queue
+
+	pthread_mutex_init(&q_lock,NULL);
+
+	sem_init(&semaphore,0,1);
+
 	pthread_create(&main_thread_handle,NULL,Controller_Thread,(void*)&args);
 	for (i = 0; i < threads; i++)
 		pthread_create(&worker_thread_handles[i], NULL, Worker_Thread,NULL);
@@ -1523,6 +1579,8 @@ int main(int argc,char *argv[]) {
 	pthread_join(main_thread_handle,NULL);
 
 
+	pthread_mutex_destroy(&q_lock);
+	sem_destroy(&semaphore);
 	/*
 
 	// Print Field for debug reasons.
