@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 // Pieces tables defines.
 // [isAlive, type, value, pos x, pos y]
@@ -112,6 +113,26 @@ struct moviment * pop_mov(struct queue * Q) {
 // Get best mov.
 struct moviment * get_next(struct queue * Q) {
     return &(Q->mov[0]);
+}
+
+// Subtract two timeval struct
+void timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1)
+{
+    long int diff = (t2->tv_usec + 1000000 * t2->tv_sec) - (t1->tv_usec + 1000000 * t1->tv_sec);
+    result->tv_sec = diff / 1000000;
+    result->tv_usec = diff % 1000000;
+}
+
+// Print a timeval struct
+void timeval_print(struct timeval *tv)
+{
+    char buffer[30];
+    time_t curtime;
+
+    printf("%ld.%06ld", tv->tv_sec, tv->tv_usec);
+    curtime = tv->tv_sec;
+    strftime(buffer, 30, "%m-%d-%Y  %T", localtime(&curtime));
+    printf(" = %s.%06ld\n", buffer, tv->tv_usec);
 }
 
 // Undo a given move, returns difference in score.
@@ -1349,19 +1370,30 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, double * sc
 }
 
 // For benchmark propouses
-void checkmate_path(int F[8][8], int player) {
+void checkmate_path(int F[8][8], int player, int parallel) {
     double score;
-    int max_depth=0;
+    int max_depth=-1;
     struct moviment * best_move;
 
     do {
-        max_depth++;
-        printf("Checkmate in %d moves. \n", max_depth);
-        best_move = alpha_beta(F, max_depth, player, &score);
+        max_depth+=2;
+        printf("Checkmate in %d moves. \n", (max_depth+1)/2);
+        // TODO: Insert paralell option here to compare.
+        if(parallel==0) {
+            best_move = alpha_beta(F, max_depth, player, &score);
+        }
+        else {
+            printf("Insert parallel version here.\n");
+        }
         printf(">> Score : %lf. \n", score);
         free(best_move);
     } while (score < 500);
-    printf("CHeckmate path found.\n");
+    printf("Checkmate path found.\n");
+}
+
+void benchmark() {
+    struct timeval
+
 }
 
 int main(int argc,char *argv[]) {
@@ -1397,12 +1429,12 @@ int main(int argc,char *argv[]) {
 */
 
 // Example 2 : Easy Check-Mate
-///*
+/*
     F[4][0] = -king;    F[7][0] = -castle;
     F[0][6] =  pawn;    F[1][6] =  pawn;    F[2][6] =  pawn;    F[3][6] =  pawn;
     F[4][6] =  pawn;    F[5][6] =  pawn;    F[6][6] =  pawn;    
     F[4][7] = king;     
-//*/
+*/
 
 // Example 3 : Easy Check-Mate 2
 /*
@@ -1421,6 +1453,23 @@ int main(int argc,char *argv[]) {
 //    F[5][6] = -pawn;    F[4][1] = pawn;
     //F[1][2] = castle;
 
+// BENCHMARK 1: "Mate in 6" 
+// source: http://www.chess.com/forum/view/endgames/mate-in-6-masters-only-d
+
+    F[0][2] = -pawn;    F[3][2] = -pawn; 
+    F[0][3] = pawn;    
+    F[1][5] = pawn;     F[3][5] = -pawn;    
+    F[0][6] = -pawn;    F[2][6] =  -pawn;   F[3][6] =  pawn;
+    F[0][7] = -king;    F[2][7] = king;   
+
+
+// BENCHMARK 2: Easy to see mate.
+// Source: Madruguinha
+/*
+    F[6][0] = -castle;  F[7][1] = -castle;  F[7][0] = -king;
+    F[0][4] = king;     F[0][3] = pawn;     F[1][3] = pawn;    
+*/
+
     }else{
         for(i=0; i<8; i++) {
             for(j=0; j<8; j++) {
@@ -1432,7 +1481,7 @@ int main(int argc,char *argv[]) {
 
     // Print Field for debug reasons.
     print_field(F);
-    checkmate_path(F, player);
+    checkmate_path(F, player, 0);
     
     /*while(c == 'c') {
         best_move = alpha_beta(F, max_depth, player, &score);
