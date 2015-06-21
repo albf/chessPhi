@@ -14,13 +14,6 @@
 
 #define depth_factor 0.0625
 
-// Order : 
-//  B_tA (24), B_hA (25), B_bA (26), B_qA (27), B_kA (28), B_bB (29), B_hB (30), B_tB (31)
-//  B_pB (16), B_pB (17), B_pC (18), B_pD (19), B_pE (20), B_pF (21), B_pG (22), B_pH (23)
-//  W_pA (8),  W_pB (9),  W_pC (10), W_pD (11), W_pE (12), W_pF (13), W_pG (14), W_pH (15)
-//  W_tA (0),  W_hA (1),  W_bA (2),  W_qA (3),  W_kA (4),  W_bB (5),  W_hB (6),  W_tB (7)
-//  Order 0, 1, 2 ... -> Up     
-    
 // Pieces Definitions, used later as index
 #define pawn 9
 #define pawn_value 1
@@ -35,9 +28,6 @@
 #define king 1
 #define king_value 1000
 // White is negative, Black is positive.
-
-void print_field(int F[8][8]);
-void print_player(int P[num_pieces][num_col]);
 
 int ALPHA_CUT = 0;
 int BETA_CUT = 0;
@@ -71,6 +61,16 @@ struct stack{
     double beta;
     double score;
 };
+
+struct moviment * alpha_beta(int F[8][8], int max_depth, int player, double * score);
+void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct moviment * ret, int player, int depth);
+double mount_pieces(int F[][8], int P[][num_col], int player);
+int update_score(struct stack * best_score, int depth, struct queue * Q, struct moviment * best_move, double * score);
+int apply_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov);
+void do_move(int F[8][8], struct moviment * mov);
+void print_field(int F[8][8]);
+void print_player(int P[num_pieces][num_col]);
+
 
 // Init the moviment queue.
 void init_queue(struct queue * Q, int size) {
@@ -117,8 +117,6 @@ struct moviment * get_next(struct queue * Q) {
 // Undo a given move, returns difference in score.
 int undo_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov, int depth) { 
     int score_diff = 0;
-
-    printf("UNDO MOVE \n");
 
     // If the move was a promotion
     if(mov->pro_depth == depth) {
@@ -187,12 +185,21 @@ int apply_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov) {
     F[mov->pos_x][mov->pos_y] = P[mov->index][1];
     F[mov->l_pos_x][mov->l_pos_y] = 0;
 
-    //printf("\n");
-    //print_field(F);
-    //printf("\n");
-    printf("APPLY MOVE. SCORE_DIFF:%d\n", score_diff);
+    //printf("APPLY MOVE. SCORE_DIFF:%d\n", score_diff);
 
     return score_diff;
+}
+
+void do_move(int F[8][8], struct moviment * mov) {
+    // Promotion of pawn
+    if(mov->pro_depth >= 0) {
+        F[mov->pos_x][mov->pos_y] = mov->pro_type;
+    }
+    else {
+        F[mov->pos_x][mov->pos_y] = F[mov->l_pos_x][mov->l_pos_y];
+    }
+
+    F[mov->l_pos_x][mov->l_pos_y] = 0;
 }
 
 // Return next nTH move in ret. If couldn't found, return -1 in ret->index. Don't apply the move.
@@ -364,75 +371,143 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
 
                 }
             }
-            // White castles
-            else if ((P[i][1] == -castle)||(P[i][1] == -queen)||(P[i][1] == -king)) {
-                // Just try to move foward.
-                for(pos=1; (((y+pos)<8)&&(F[x][y+pos]>=0)) ; pos++) {
-                    m_c++;
+            // White castles/bishops/king/queen
+            else if ((P[i][1] == -castle)||(P[i][1] == -queen)||(P[i][1] == -king)||(P[i][1] == -bishop)) {
+                if ((P[i][1] == -castle)||(P[i][1] == -queen)||(P[i][1] == -king)) {
+                    // Just try to move foward.
+                    for(pos=1; (((y+pos)<8)&&(F[x][y+pos]>=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x;
+                            ret->pos_y = y+pos;
+                            break;
+                        }
+                        if((F[x][y+pos]>0)||(P[i][1] == -king)) {
+                            break;
+                        }
+                    }
+                    
                     if(m_c == n) {
-                        ret->pos_x = x;
-                        ret->pos_y = y+pos;
                         break;
                     }
-                    if((F[x][y+pos]>0)||(P[i][1] == -king)) {
-                        break;
+                    
+                    // Just try to move backward.
+                    for(pos=1; (((y-pos)>=0)&&(F[x][y-pos]>=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x;
+                            ret->pos_y = y-pos;
+                            break;
+                        }
+                        if((F[x][y-pos]>0)||(P[i][1] == -king)) {
+                            break;
+                        }
                     }
-                }
-                
-                if(m_c == n) {
-                    break;
-                }
-                
-                // Just try to move backward.
-                for(pos=1; (((y-pos)>=0)&&(F[x][y-pos]>=0)) ; pos++) {
-                    m_c++;
+                    
                     if(m_c == n) {
-                        ret->pos_x = x;
-                        ret->pos_y = y-pos;
                         break;
                     }
-                    if((F[x][y-pos]>0)||(P[i][1] == -king)) {
-                        break;
+                    
+                    // Just try to move to the left.
+                    for(pos=1; (((x-pos)>=0)&&(F[x-pos][y]>=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x-pos;
+                            ret->pos_y = y;
+                            break;
+                        }
+                        if((F[x-pos][y]>0)||(P[i][1] == -king)) {
+                            break;
+                        }
                     }
-                }
-                
-                if(m_c == n) {
-                    break;
-                }
-                
-                // Just try to move to the left.
-                for(pos=1; (((x-pos)>=0)&&(F[x-pos][y]>=0)) ; pos++) {
-                    m_c++;
+                    
                     if(m_c == n) {
-                        ret->pos_x = x-pos;
-                        ret->pos_y = y;
                         break;
                     }
-                    if((F[x-pos][y]>0)||(P[i][1] == -king)) {
-                        break;
+                    
+                    // Just try to move to the right.
+                    for(pos=1; (((x+pos)<8)&&(F[x+pos][y]>=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x+pos;
+                            ret->pos_y = y;
+                            break;
+                        }
+                        if((F[x+pos][y]>0)||(P[i][1] == -king)) {
+                            break;
+                        }
                     }
-                }
-                
-                if(m_c == n) {
-                    break;
-                }
-                
-                // Just try to move to the right.
-                for(pos=1; (((x+pos)<8)&&(F[x+pos][y]>=0)) ; pos++) {
-                    m_c++;
                     if(m_c == n) {
-                        ret->pos_x = x+pos;
-                        ret->pos_y = y;
-                        break;
-                    }
-                    if((F[x+pos][y]>0)||(P[i][1] == -king)) {
                         break;
                     }
                 }
-                if(m_c == n) {
-                    break;
+
+                // White bishops
+                if ((P[i][1] == -bishop)||(P[i][1] == -queen)||(P[i][1] == -king)) {
+                    // Just try to move foward-right.
+                    for(pos=1; (((y+pos)<8)&&((x+pos)<8)&&(F[x+pos][y+pos]>=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x+pos;
+                            ret->pos_y = y+pos;
+                            break;
+                        }
+                        if((F[x+pos][y+pos]>0)||(P[i][1] == -king)) {
+                            break;
+                        }
+                    }
+                    
+                    if(m_c == n) {
+                        break;
+                    }
+                    
+                    // Just try to move foward-left.
+                    for(pos=1; (((y+pos)<8)&&((x-pos)>=0)&&(F[x-pos][y+pos]>=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x-pos;
+                            ret->pos_y = y+pos;
+                            break;
+                        }
+                        if((F[x-pos][y+pos]>0)||(P[i][1] == -king)) {
+                            break;
+                        }
+                    }
+                    
+                    if(m_c == n) {
+                        break;
+                    }
+                    
+                    // Just try to move backward-right.
+                    for(pos=1; (((y-pos)>=0)&&((x+pos)<8)&&(F[x+pos][y-pos]>=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x+pos;
+                            ret->pos_y = y-pos;
+                            break;
+                        }
+                        if((F[x+pos][y-pos]>0)||(P[i][1] == -king)) {
+                            break;
+                        }
+                    }
+                    
+                    // Just try to move backward-left.
+                    for(pos=1; (((y-pos)>=0)&&((x-pos)>=0)&&(F[x-pos][y-pos]>=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x-pos;
+                            ret->pos_y = y-pos;
+                            break;
+                        }
+                        if((F[x-pos][y-pos]>0)||(P[i][1] == -king)) {
+                            break;
+                        }
+                    }
+                    
+                    if(m_c == n) {
+                        break;
+                    }
                 }
-                
             }
             // White knights
             else if (P[i][1] == -knight) {
@@ -507,80 +582,7 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
                         break;
                     }
                 }
-                
             }
-            // White bishops
-            else if ((P[i][1] == -bishop)||(P[i][1] == -queen)||(P[i][1] == -king)) {
-                // Just try to move foward-right.
-                for(pos=1; (((y+pos)<8)&&((x+pos)<8)&&(F[x+pos][y+pos]>=0)) ; pos++) {
-                    m_c++;
-                    if(m_c == n) {
-                        ret->pos_x = x+pos;
-                        ret->pos_y = y+pos;
-                        break;
-                    }
-                    if((F[x+pos][y+pos]>0)||(P[i][1] == -king)) {
-                        break;
-                    }
-                }
-                
-                if(m_c == n) {
-                    break;
-                }
-                
-                // Just try to move foward-left.
-                for(pos=1; (((y+pos)<8)&&((x-pos)>=0)&&(F[x-pos][y+pos]>=0)) ; pos++) {
-                    m_c++;
-                    if(m_c == n) {
-                        ret->pos_x = x-pos;
-                        ret->pos_y = y+pos;
-                        break;
-                    }
-                    if((F[x-pos][y+pos]>0)||(P[i][1] == -king)) {
-                        break;
-                    }
-                }
-                
-                if(m_c == n) {
-                    break;
-                }
-                
-                // Just try to move backward-right.
-                for(pos=1; (((y-pos)>=0)&&((x+pos)<8)&&(F[x+pos][y-pos]>=0)) ; pos++) {
-                    m_c++;
-                    if(m_c == n) {
-                        ret->pos_x = x+pos;
-                        ret->pos_y = y-pos;
-                        break;
-                    }
-                    if((F[x+pos][y-pos]>0)||(P[i][1] == -king)) {
-                        break;
-                    }
-                }
-                
-                // Just try to move backward-left.
-                for(pos=1; (((y-pos)>=0)&&((x-pos)>=0)&&(F[x-pos][y-pos]>=0)) ; pos++) {
-                    m_c++;
-                    if(m_c == n) {
-                        ret->pos_x = x-pos;
-                        ret->pos_y = y-pos;
-                        break;
-                    }
-                    if((F[x-pos][y-pos]>0)||(P[i][1] == -king)) {
-                        break;
-                    }
-                }
-                
-                if(m_c == n) {
-                    break;
-                }
-            }
-            
-            // White Queen : Queen case solved with Bishop U Tower
-            // else if(P[i][1] == -queen)
-            
-            // White King : King case solved with Bishop U Tower
-            // else if(P[i][1] == -king) 
         }
         else {
                 
@@ -686,7 +688,6 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
                             break;
                         }
                     }
-
                 }
                 
                 // Try to get piece on foward-right
@@ -733,79 +734,153 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
                             break;
                         }
                     }
-
                 }
             }
             
             // Black castles
-            else if ((P[i][1] == castle)||(P[i][1] == queen)||(P[i][1] == king)) {
-                // Just try to move foward.
-                for(pos=1; (((y+pos)<8)&&(F[x][y+pos]<=0)) ; pos++) {
-                    m_c++;
+            else if ((P[i][1] == castle)||(P[i][1] == queen)||(P[i][1] == king)||(P[i][1] == bishop)) {
+                if ((P[i][1] == castle)||(P[i][1] == queen)||(P[i][1] == king)) {
+                    // Just try to move foward.
+                    for(pos=1; (((y+pos)<8)&&(F[x][y+pos]<=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x;
+                            ret->pos_y = y+pos;
+                            break;
+                        }
+                        if((F[x][y+pos]<0)||(P[i][1] == king)) {
+                            break;
+                        }
+                    }
+                    
                     if(m_c == n) {
-                        ret->pos_x = x;
-                        ret->pos_y = y+pos;
                         break;
                     }
-                    if((F[x][y+pos]<0)||(P[i][1] == king)) {
-                        break;
+                    
+                    // Just try to move backward.
+                    for(pos=1; (((y-pos)>=0)&&(F[x][y-pos]<=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x;
+                            ret->pos_y = y-pos;
+                            break;
+                        }
+                        if((F[x][y-pos]<0)||(P[i][1] == king)) {
+                            break;
+                        }
                     }
-                }
-                
-                if(m_c == n) {
-                    break;
-                }
-                
-                // Just try to move backward.
-                for(pos=1; (((y-pos)>=0)&&(F[x][y-pos]<=0)) ; pos++) {
-                    m_c++;
+                    
                     if(m_c == n) {
-                        ret->pos_x = x;
-                        ret->pos_y = y-pos;
                         break;
                     }
-                    if((F[x][y-pos]<0)||(P[i][1] == king)) {
-                        break;
+                    
+                    // Just try to move to the left.
+                    for(pos=1; (((x-pos)>=0)&&(F[x-pos][y]<=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x-pos;
+                            ret->pos_y = y;
+                            break;
+                        }
+                        if((F[x-pos][y]<0)||(P[i][1] == king)) {
+                            break;
+                        }
                     }
-                }
-                
-                if(m_c == n) {
-                    break;
-                }
-                
-                // Just try to move to the left.
-                for(pos=1; (((x-pos)>=0)&&(F[x-pos][y]<=0)) ; pos++) {
-                    m_c++;
+                    
                     if(m_c == n) {
-                        ret->pos_x = x-pos;
-                        ret->pos_y = y;
                         break;
                     }
-                    if((F[x-pos][y]<0)||(P[i][1] == king)) {
-                        break;
+                    
+                    // Just try to move to the right.
+                    for(pos=1; (((x+pos)<8)&&(F[x+pos][y]<=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x+pos;
+                            ret->pos_y = y;
+                            break;
+                        }
+                        if((F[x+pos][y]<0)||(P[i][1] == king)) {
+                            break;
+                        }
                     }
-                }
-                
-                if(m_c == n) {
-                    break;
-                }
-                
-                // Just try to move to the right.
-                for(pos=1; (((x+pos)<8)&&(F[x+pos][y]<=0)) ; pos++) {
-                    m_c++;
+                    
                     if(m_c == n) {
-                        ret->pos_x = x+pos;
-                        ret->pos_y = y;
-                        break;
-                    }
-                    if((F[x+pos][y]<0)||(P[i][1] == king)) {
                         break;
                     }
                 }
-                
-                if(m_c == n) {
-                    break;
+
+                // Black bishops
+                if ((P[i][1] == bishop)||(P[i][1] == queen)||(P[i][1] == king)) {
+                    // Just try to move foward-right.
+                    for(pos=1; (((y+pos)<8)&&((x+pos)<8)&&(F[x+pos][y+pos]<=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x+pos;
+                            ret->pos_y = y+pos;
+                            break;
+                        }
+                        if((F[x+pos][y+pos]<0)||(P[i][1] == king)) {
+                            break;
+                        }
+                    }
+                    
+                    if(m_c == n) {
+                        break;
+                    }
+                    
+                    // Just try to move foward-left.
+                    for(pos=1; (((y+pos)<8)&&((x-pos)>=0)&&(F[x-pos][y+pos]<=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x-pos;
+                            ret->pos_y = y+pos;
+                            break;
+                        }
+                        if((F[x-pos][y+pos]<0)||(P[i][1] == king)) {
+                            break;
+                        }
+                    }
+                    
+                    if(m_c == n) {
+                        break;
+                    }
+                    
+                    // Just try to move backward-right.
+                    for(pos=1; (((y-pos)>=0)&&((x+pos)<8)&&(F[x+pos][y-pos]<=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x+pos;
+                            ret->pos_y = y-pos;
+                            break;
+                        }
+                        if((F[x+pos][y-pos]<0)||(P[i][1] == king)) {
+                            break;
+                        }
+                    }
+                    
+                    if(m_c == n) {
+                        break;
+                    }
+                    
+                    // Just try to move backward-left.
+                    for(pos=1; (((y-pos)>=0)&&((x-pos)>=0)&&(F[x-pos][y-pos]<=0)) ; pos++) {
+                        m_c++;
+                        if(m_c == n) {
+                            ret->pos_x = x-pos;
+                            ret->pos_y = y-pos;
+                            break;
+                        }
+                        if((F[x-pos][y-pos]<0)||(P[i][1] == king)) {
+                            break;
+                        }
+                    }
+                    
+                    if(m_c == n) {
+                        break;
+                    }
+                    
                 }
+
             }
             // Black knights
             else if (P[i][1] == knight) {
@@ -882,82 +957,6 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
                 }
                 
             }
-            // Black bishops
-            else if ((P[i][1] == bishop)||(P[i][1] == queen)||(P[i][1] == king)) {
-                // Just try to move foward-right.
-                for(pos=1; (((y+pos)<8)&&((x+pos)<8)&&(F[x+pos][y+pos]<=0)) ; pos++) {
-                    m_c++;
-                    if(m_c == n) {
-                        ret->pos_x = x+pos;
-                        ret->pos_y = y+pos;
-                        break;
-                    }
-                    if((F[x+pos][y+pos]<0)||(P[i][1] == king)) {
-                        break;
-                    }
-                }
-                
-                if(m_c == n) {
-                    break;
-                }
-                
-                // Just try to move foward-left.
-                for(pos=1; (((y+pos)<8)&&((x-pos)>=0)&&(F[x-pos][y+pos]<=0)) ; pos++) {
-                    m_c++;
-                    if(m_c == n) {
-                        ret->pos_x = x-pos;
-                        ret->pos_y = y+pos;
-                        break;
-                    }
-                    if((F[x-pos][y+pos]<0)||(P[i][1] == king)) {
-                        break;
-                    }
-                }
-                
-                if(m_c == n) {
-                    break;
-                }
-                
-                // Just try to move backward-right.
-                for(pos=1; (((y-pos)>=0)&&((x+pos)<8)&&(F[x+pos][y-pos]<=0)) ; pos++) {
-                    m_c++;
-                    if(m_c == n) {
-                        ret->pos_x = x+pos;
-                        ret->pos_y = y-pos;
-                        break;
-                    }
-                    if((F[x+pos][y-pos]<0)||(P[i][1] == king)) {
-                        break;
-                    }
-                }
-                
-                if(m_c == n) {
-                    break;
-                }
-                
-                // Just try to move backward-left.
-                for(pos=1; (((y-pos)>=0)&&((x-pos)>=0)&&(F[x-pos][y-pos]<=0)) ; pos++) {
-                    m_c++;
-                    if(m_c == n) {
-                        ret->pos_x = x-pos;
-                        ret->pos_y = y-pos;
-                        break;
-                    }
-                    if((F[x-pos][y-pos]<0)||(P[i][1] == king)) {
-                        break;
-                    }
-                }
-                
-                if(m_c == n) {
-                    break;
-                }
-                
-            }
-            // Black Queen
-            //else if(P[i][1] == queen) 
-
-            // Black King
-            //else if(P[i][1] == king) 
         }
     }
     
@@ -977,7 +976,6 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
         }
 
         if(F[ret->pos_x][ret->pos_y]!=0) {
-            // Marcus, sei que "i" podia ser usado aqui. Compilador cuida disso.
             for(pos=0; pos<32; pos++) {
                 if((P[pos][3] == ret->pos_x) && (P[pos][4] == ret->pos_y) && (P[pos][0]>0)) {
                     break;
@@ -1087,7 +1085,7 @@ double mount_pieces(int F[][8], int P[][num_col], int player) {
 
 // Update score table and alpha/beta values. 
 // Return -1 if alpha-beta condition wasn't matched, 1 otherwise.
-int update_score(struct stack * best_score, int depth, struct queue * Q, struct moviment * best_move, int * score) {
+int update_score(struct stack * best_score, int depth, struct queue * Q, struct moviment * best_move, double * score) {
     //int i;
     struct moviment * next;
     
@@ -1116,7 +1114,6 @@ int update_score(struct stack * best_score, int depth, struct queue * Q, struct 
             if(depth == 0) {            // best score in root? mark as new best_move.
                 //printf(">>>Best Score updated\n");
                 next = get_next(Q);
-                //printf("NEW BEST_MOVE\n");
                 best_move->index = next->index;
                 best_move->l_pos_x = next->l_pos_x;
                 best_move->l_pos_y = next->l_pos_y;
@@ -1131,7 +1128,6 @@ int update_score(struct stack * best_score, int depth, struct queue * Q, struct 
                 if(score != NULL) {
                     *score = best_score[depth].score;
                 }
-                //printf("Mov : %d, %d -> %d %d ; Counter: %d\n", next->l_pos_x, next->l_pos_y, next->pos_x, next->pos_y, next->d_counter);
                 //printf("Mov : %d, %d -> %d %d ; Counter: %d\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter);
             }
 
@@ -1223,7 +1219,7 @@ void print_player(int P[num_pieces][num_col]) {
 }
 
 // F = field[8][8] converted to this system, max_depth, player: -1 white. 1 black.
-struct moviment * alpha_beta(int F[8][8], int max_depth, int player, int * score) {
+struct moviment * alpha_beta(int F[8][8], int max_depth, int player, double * score) {
     struct queue Q;
     int P[num_pieces][num_col];
     int depth = 0, i, u_ret=-1;
@@ -1233,6 +1229,7 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, int * score
     struct moviment * mov;
     struct moviment * best_move;            // Best move available. Only used for depth=0.
     double current_score;
+    int found;
     
     current_score = mount_pieces(F, P, player);     // Mount pieces table.
     init_queue(&Q, max_depth);              // Init queue
@@ -1241,11 +1238,8 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, int * score
     best_move = (struct moviment *) malloc(sizeof(struct moviment));
     best_move->refresh = 0;
 
-    //printf("Finding alpha_beta for: [Score : %lf]\n", score);
-    //printf("Queue pos: %d\n", Q.pop_pos);
     //print_field(F);
     //print_player(P);
-    
     
     for(i=0; i<=max_depth; i++) {            // Alpha=-inf ; Beta = inf
         if((i%2)==0) {
@@ -1259,12 +1253,10 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, int * score
         mov_counter[i] = 0;
     }
     
-    //int loop =0;
-    int found=0;
+    //int found=0;
     ALPHA_CUT = 0;
     BETA_CUT = 0;
     while(1) {
-        //printf("Loop: %d\n", loop++);
         //printf("depth : %d\n", depth);
         //printf("load u_ret: %d\n", u_ret);
         //printf("found: %d\n", found);
@@ -1274,7 +1266,7 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, int * score
             // If it's in the max depth OR a king is dead OR couldn't find someone.
             if((depth >= max_depth)||(u_ret == 2)||(abs(best_score[depth].score) == 999999)) {
                 //if(u_ret == 2)
-                //printf(".SCORE UPDATED TO %lf in depth %d\n", current_score, depth);
+                //  printf(".SCORE UPDATED TO %lf in depth %d\n", current_score, depth);
                 best_score[depth].score = current_score;
             }
             depth--;
@@ -1288,9 +1280,6 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, int * score
             //printf("\nUndo Move. Score %lf\n", current_score);
             //print_field(F);
             player = player * -1;                                   // Invert player.
-
-            //printf("Undo done, updating Deppth:%d\n", depth);
-            
         }
         else {                                                      // If can expand, try!
             next = alloc_mov(&Q);                                   // Get new move.
@@ -1303,23 +1292,7 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, int * score
                 //current_score -= depth_factor;
                 depth++;
                 player = player * -1;                               // Invert player.
-                // debug
-                found++;
-
-                //if(depth == 1) {
-                printf("\nMove found. Score below : %lf, found %d, deepth:%d\n", current_score, found, depth);
-                print_field(F);
-                printf("\n");
-
-                //printf("[PAIR UPDATE] - Score:%lf\n", current_score);
-                //for (i=0; i<=5; i++) {
-                //  printf("i:%d\n", i);
-                //  printf("Alpha: %lf \n", best_score[i].alpha);
-                //  printf("Beta : %lf \n", best_score[i].beta);
-                //  printf("Score: %lf \n", best_score[i].score);
-                //}
-                //printf("\n");
-                //}
+                found++;                                            // debug 
 
                 // Update best_score[depth+1]
                 best_score[depth].alpha = best_score[depth-1].alpha;  
@@ -1349,7 +1322,7 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, int * score
 
             }
             else {
-                //printf("Couldn't found move, depth:%d\n", depth);
+                //printf("Couldn't found move, depth: %d, moves found: %d\n", depth, mov_counter[depth]);
                 //printf("Couldn't find move\n");
                 pop_mov(&Q);
                 u_ret = 1;
@@ -1358,21 +1331,11 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, int * score
         }
     }
 
-    printf("Moviments Visited: %d\n", found);
-    printf("Alpha Cuts: %d\n", ALPHA_CUT);
-    printf("Beta Cuts: %d\n", BETA_CUT);
-    printf("Queue pos: %d\n", Q.pop_pos);
+    //printf("Moviments Visited: %d\n", found);
+    //printf("Alpha Cuts: %d\n", ALPHA_CUT);
+    //printf("Beta Cuts: %d\n", BETA_CUT);
 
-    // Fix best_score
-    //for(i=0; i<32; i++) {
-    //    if((P[i][3] == best_move->l_pos_x)&&(P[i][4] == best_move->l_pos_y)) {
-    //        best_move->index = i;
-    //    }
-    //}
-    //printf("Mov : %d, %d -> %d %d ; Counter: %d, Index: %d, k_index: %d\n", 
-    //        best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter, best_move->index, best_move->k_index);
-
-    print_player(P);
+    //print_player(P);
     
     free_queue(&Q);
     free(best_score);
@@ -1381,18 +1344,33 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, int * score
     if(best_move->refresh == 0) {
         printf("ERROR: Couldn't find move.\n");
     }
-    else {
-        apply_move(F,P,best_move);
-    }
+
     return best_move;
 }
 
-int main(int argc,char *argv[]) {
-    int i, j, score; 
-    char c='c';
-    int player = -1, max_depth = 2;
-    int F[8][8];
+// For benchmark propouses
+void checkmate_path(int F[8][8], int player) {
+    double score;
+    int max_depth=0;
     struct moviment * best_move;
+
+    do {
+        max_depth++;
+        printf("Checkmate in %d moves. \n", max_depth);
+        best_move = alpha_beta(F, max_depth, player, &score);
+        printf(">> Score : %lf. \n", score);
+        free(best_move);
+    } while (score < 500);
+    printf("CHeckmate path found.\n");
+}
+
+int main(int argc,char *argv[]) {
+    int i, j;
+    //double score; 
+    //char c='c';
+    int player = -1;//, max_depth = 3;
+    int F[8][8];
+    //struct moviment * best_move;
 
     /* Board init */
 
@@ -1419,12 +1397,12 @@ int main(int argc,char *argv[]) {
 */
 
 // Example 2 : Easy Check-Mate
-/*
+///*
     F[4][0] = -king;    F[7][0] = -castle;
     F[0][6] =  pawn;    F[1][6] =  pawn;    F[2][6] =  pawn;    F[3][6] =  pawn;
     F[4][6] =  pawn;    F[5][6] =  pawn;    F[6][6] =  pawn;    
     F[4][7] = king;     
-*/
+//*/
 
 // Example 3 : Easy Check-Mate 2
 /*
@@ -1440,9 +1418,8 @@ int main(int argc,char *argv[]) {
 // Example 5 : Just 2 Kings. Will one kill each other?
 
     //F[6][6] = king;     F[6][5] = -king;    
-    F[5][6] = -pawn;    F[4][1] = pawn;
+//    F[5][6] = -pawn;    F[4][1] = pawn;
     //F[1][2] = castle;
-
 
     }else{
         for(i=0; i<8; i++) {
@@ -1455,10 +1432,12 @@ int main(int argc,char *argv[]) {
 
     // Print Field for debug reasons.
     print_field(F);
+    checkmate_path(F, player);
     
-    while(c == 'c') {
+    /*while(c == 'c') {
         best_move = alpha_beta(F, max_depth, player, &score);
-        printf("Mov : %d, %d -> %d %d ; Counter: %d ; Index: %d ; Score : %d\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter, best_move->index, score);
+        do_move(F,best_move);
+        printf("Mov : %d, %d -> %d %d ; Counter: %d ; Index: %d ; Score : %lf\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter, best_move->index, score);
 
         // Print Field for debug reasons.
         print_field(F);
@@ -1467,7 +1446,7 @@ int main(int argc,char *argv[]) {
         player = player*-1;
         free(best_move);
         scanf(" %c", &c);
-    }
+    }*/
 
     
     return 0;
