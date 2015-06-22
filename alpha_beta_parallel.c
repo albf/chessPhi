@@ -1410,6 +1410,7 @@ typedef struct sQ
 	int max_depth; /* game depth */
 }Queue;
 
+
 /* global queue declaration */
 
 int itens_level1;
@@ -1418,6 +1419,27 @@ Queue qlevel1[64];
 Queue qlevel2[64][64];
 int n_queue1=0;
 int n_n_queue2[64];
+
+/* level control */
+
+int start_level1=0;
+int start_level2=0;
+
+int flags[64];
+
+void set_test_level2(int index)
+{
+	int i;
+	flags[index]=1;
+	for(i=0;i<itens_level1;i++)
+	{
+		if(flags[i]==0)
+		{
+			return ;
+		}
+	}
+	start_level2=1;
+}
 
 void insert_level2(Queue Q,int line)
 {
@@ -1513,9 +1535,6 @@ void copy_matrix(int **D,int S[8][8])
 }
 
 
-/* level control */
-
-int start_level1=0;
 
 void *Controller_Thread(void *args)
 {
@@ -1642,7 +1661,8 @@ void *Worker_Thread()
 			tmp.score=current_score+apply_move(F, P, &next);
 			tmp.next=next;
 			tmp.max_depth=tmp.max_depth;
-	
+
+			
 			insert_level2(tmp2,index);
 			
 			print_field(F);
@@ -1663,9 +1683,42 @@ void *Worker_Thread()
 		printf("Level %d Opened %d\n",index,check_size_line_level2(index));
 
 		sem_wait(&semaphore);
+		set_test_level2(index);
 	}
 	/* finish level 1 */
 
+	sem_post(&semaphore);
+
+	/* start level 2 */
+
+	sem_wait(&semaphore);
+	while(start_level2==0)
+	{
+		sem_post(&semaphore);
+		sem_wait(&semaphore);
+	}
+	sem_post(&semaphore);
+
+	printf("level2\n");
+
+	sem_wait(&semaphore);
+	int n=get_line_level2();
+	while(n!=-1)
+	{
+		Queue tmp=remove_level2(n);
+		sem_post(&semaphore);
+		printf("Retirou da lista (%d,%d)\n",n,check_size_line_level2(n));
+		copy_matrix2(F,tmp.F);
+		current_score=mount_pieces(F,P,tmp.player*-1);
+		print_field(F);
+	
+		
+
+		//best_move = alpha_beta(F, max_depth, player, &score);
+
+		sem_wait(&semaphore);
+		n=get_line_level2();
+	}
 	sem_post(&semaphore);
 
 	return NULL;
