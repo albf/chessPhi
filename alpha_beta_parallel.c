@@ -1661,6 +1661,11 @@ void *Controller_Thread(void *args)
 
 	printf("Best move: (%d,%d) -> (%d,%d)\n",maxl1.l_pos_x,maxl1.l_pos_y,maxl1.pos_x,maxl1.pos_y);
 
+	apply_move(myargs.F, P, &maxl1);
+
+	print_field(myargs.F);
+
+
 	free(mov_counter);
 	return NULL;
 }
