@@ -1415,6 +1415,11 @@ typedef struct sQ
 int score_minl2[64];
 struct moviment minl2[64];
 
+int score_maxl1=0;
+struct moviment maxl1;
+
+
+
 
 /* global queue declaration */
 
@@ -1431,6 +1436,22 @@ int n_n_queue2[64];
 int start_level1=0;
 int start_level2=0;
 int start_level3=0;
+
+int count_l1=0;
+
+int start_level4=0;
+
+void test_l4()
+{
+	if(count_l1==itens_level1)
+	{
+	start_level4=1;
+	}
+}
+
+
+
+
 
 int flags[64];
 
@@ -1621,17 +1642,19 @@ void *Controller_Thread(void *args)
 
 	sem_post(&semaphore);
 
-	//sem_wait(&semaphore);
+	
+	
+	sem_wait(&semaphore);
 	
 	/* results join */
 
-	/*
-	while(terminated!=mov_counter[depth]-1)
+	
+	while(start_level4==0)
 	{
 		sem_post(&semaphore);
 		sem_wait(&semaphore);
-	} */
-	//sem_post(&semaphore);
+	} 
+	sem_post(&semaphore);
 	
 	//printf("threads joined\n");
 
@@ -1720,7 +1743,18 @@ void *Worker_Thread()
 		}
 
 		printf("chegou level3\n");
-		
+	
+		printf("best de %d eh %d\n",index,score_minl2[index]);
+
+		if(score_minl2[index]>score_maxl1)
+		{
+			score_maxl1=score_minl2[index];
+			maxl1=minl2[index];
+		}
+		count_l1++;
+		printf("count eh %d\n",count_l1);
+
+		test_l4();
 
 
 
