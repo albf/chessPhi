@@ -1656,7 +1656,9 @@ void *Controller_Thread(void *args)
 	} 
 	sem_post(&semaphore);
 	
-	//printf("threads joined\n");
+	printf("threads joined\n");
+
+	printf("Best move: (%d,%d) -> (%d,%d)\n",maxl1.l_pos_x,maxl1.l_pos_y,maxl1.pos_x,maxl1.l_pos_y);
 
 	free(mov_counter);
 	return NULL;
@@ -1798,7 +1800,7 @@ void *Worker_Thread()
 		if(tmp.score<score_minl2[n])
 		{
 			score_minl2[n]=tmp.score;
-			minl2[n]=tmp.next;
+			minl2[n]=tmp.m1;
 		}
 		
 		itens_level2--;
