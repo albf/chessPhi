@@ -1430,6 +1430,7 @@ int n_n_queue2[64];
 
 int start_level1=0;
 int start_level2=0;
+int start_level3=0;
 
 int flags[64];
 
@@ -1445,6 +1446,14 @@ void set_test_level2(int index)
 		}
 	}
 	start_level2=1;
+}
+
+void test_level3()
+{
+	if(itens_level2==0)
+	{
+		start_level3=1;
+	}
 }
 
 void insert_level2(Queue Q,int line)
@@ -1698,10 +1707,23 @@ void *Worker_Thread()
 		
 		printf("Level %d Opened %d\n",index,check_size_line_level2(index));
 
-		itens_level2+=check_size_line_level2(index);
-
 		sem_wait(&semaphore);
+
+		itens_level2+=check_size_line_level2(index);
 		set_test_level2(index);
+
+	
+		while(start_level3==0)
+		{
+			sem_post(&semaphore);
+			sem_wait(&semaphore);
+		}
+
+		printf("chegou level3\n");
+		
+
+
+
 	}
 	/* finish level 1 */
 
@@ -1751,6 +1773,8 @@ void *Worker_Thread()
 	}
 	sem_post(&semaphore);
 
+
+	test_level3();
 	printf("saindo. itens %d\n",itens_level2);
 
 	return NULL;
