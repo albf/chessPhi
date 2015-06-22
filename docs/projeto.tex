@@ -34,16 +34,56 @@
 
 \section{Introdução}
 
-TBD
+O uso de computadores para tentar encontrar um bom movimento em um determinado jogo de xadrez já é feito há muitos anos e com vários algoritmos diferentes . Um deles, que também pode ser aplicado para outros jogos, chama-se \textit{Alpha-Beta-Pruning}, que visa melhorar a performance do \textit{Minimax}, sem permitir a perda do melhor resultado.
+
+O foco deste trabalho é a implementação serial e paralela de um programa que, fazendo uso do algoritmo citado, visa obter um bom próximo movimento. Ambas implementações são feitas em C, sendo a paralela para a plataforma Xeon Phi. Para fazer a integração destes dois trechos, será implementada também uma simples interface do jogo em Python, que dará a opção ao jogador se este quer ou não uma dica para a próxima jogada, além de permitir a configuração da computação que será feita (número máximo de profundidade ou tempo de processamento, por exemplo). 
 
 \section{Implementação}
 
+\subsection{Interface}
+
+A interface em Python é baseada na biblioteca QtPython, funcionando através de um sistema de \textit{grid}. Os primeiros 8x8 elementos são \textit{labels} exibindo as peças no tabuleiro, e os demais são botões de controle. 
+
+As peças no tabuleiro são imagens carregadas a partir da matriz-tabuleiro. Esta matriz é mantida pelo programa em Python e é independente dos módulos serial e paralelo. Esta matriz pode ser atualizada livremente ou através da execução/chamada dos módulos seriais e/ou paralelos.
+
+A chamada dos módulos em C é feita através da chamada de um processo através da biblioteca subprocess. A matriz mantida em memória é passada como entrada via linha de comando e é atualizada com o resultado do tabuleiro \textit{parsed} de \textit{stdout}.
+
+\subsection{Serial}
+
+O algoritmo serial consiste basicamente de um backtracking dos movimentos possiveis, realizados sequencialmente, até que toda a computação acabe ou que se tenha atingido algum um limite de tempo/profundidade pré-estabelecido. Nota-se que já existem diversas classificações para determinar o valor de cada peça do jogo, sendo utilizada uma já existente, sendo a pontuação calculada da seguinte forma:
+
+\begin{equation}
+Score = \sum_{Peças de A} val(peças) - \sum_{Peças de B} val(peças)
+\end{equation}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=1]{chess.png}
+\end{figure}
+
+O funcionamento do alfa-beta-pruning é .....
+O algoritmo foi projetado de modo a eliminar recursões e assim obter maior desempenho e ....
+O algoritmo é modular de modo a uma fácil implementação paralela...
+
+\subsection{Paralela}
+
+Devido a estrutura das arquiteturas usadas e do algoritmo, foi feito uso de Pthreads, onde se implementou algo similar a ideia de \textit{Bag Of Tasks}, visando sempre obter uma árvore com a maior altura possível, já que, quanto maior a árvore, mais jogadas foram verificadas. A comunicação com Xeon Phi é feita através de SSH.
+
+Decidiu - se por abrir os 2 primeiros níveis da árvore em \textit{threads}, correspondendo a 1 jogada de cada um dos jogadores. Em média, se tem 20 novos movimentos a cada rodada, o que gera, em média, 400 \textit{threads}.
+
+Cada uma destas \textit{threads} executa o algoritmo serial para uma profundidade diminuidade de 2, se aproveitando da implementação serial em cada uma destas chamadas.
+
+
+DUVIDA: Detalhes de sincronização ???
+
 \section{Testes}
+
+Pode-se medir o speed up obtido com medidas para diferentes profundidades em ambas as soluções, sendo interessante também a profundidade média obtida para diferentes tempos fixados de execução, o que permitirá analisar a melhoria obtida devido a execução paralela.
 
 \subsection{Benchmarks}
 
 
-\bibliographystyle{IEEEtran}  
-\bibliographystyle{alpha}
-\bibliography{projeto.bib}
+%\bibliographystyle{IEEEtran}  
+%\bibliographystyle{alpha}
+%\bibliography{projeto.bib}
 \end{document}
