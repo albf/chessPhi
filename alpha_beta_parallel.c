@@ -1579,7 +1579,7 @@ void *Controller_Thread(void *args)
 			insert_level1(tmp);
 			
 
-			print_field(myargs.F);
+			//print_field(myargs.F);
 
 			/* copy F */
 			copy_matrix(F,myargs.F);
@@ -1650,22 +1650,30 @@ void *Worker_Thread()
 		printf("item %d removed\n",index);
 		sem_post(&semaphore);
 		copy_matrix2(F,tmp.F);
+
+
+		/* teste */
+
 		current_score=mount_pieces(F,P,tmp.player*-1);
+
+
+
 		do{
 			printf("Try mov (%d,%d)\n",index,mov_counter);
 			find_nth_move(F, P, mov_counter, &next, tmp.player*-1, 0);  // Find next move.
 			F2=allocate_matrix();
 			Queue tmp2;
-			tmp.F=F2;	
-			tmp.player=tmp.player*-1;
-			tmp.score=current_score+apply_move(F, P, &next);
-			tmp.next=next;
-			tmp.max_depth=tmp.max_depth;
+			tmp2.F=F2;	
+			tmp2.player=tmp.player*-1;
+			tmp2.score=current_score+apply_move(F, P, &next);
+			tmp2.next=next;
+			tmp2.max_depth=tmp.max_depth;
 
 			
 			insert_level2(tmp2,index);
-			
-			print_field(F);
+		
+
+			//print_field(F);
 
 			/* copy F */
 			copy_matrix(F2,F);
@@ -1709,10 +1717,10 @@ void *Worker_Thread()
 		sem_post(&semaphore);
 		printf("Retirou da lista (%d,%d)\n",n,check_size_line_level2(n));
 		copy_matrix2(F,tmp.F);
-		current_score=mount_pieces(F,P,tmp.player*-1);
-		print_field(F);
+		current_score=mount_pieces(F,P,tmp.player);
+
+		//print_field(F);
 	
-		
 
 		//best_move = alpha_beta(F, max_depth, player, &score);
 
@@ -1748,23 +1756,10 @@ int main(int argc,char *argv[]) {
 				F[i][j] = 0;
 			}
 		}
-
-		// teste
-		
-		   F[0][0] = -castle;  F[1][0] = -knight;  F[2][0] = -bishop;  F[3][0] = -queen;
-		   F[4][0] = -king;    F[5][0] = -bishop;  F[6][0] = -knight;  F[7][0] = -castle;
-		   F[0][1] = -pawn;    F[1][1] = -pawn;    F[2][1] = -pawn;    F[3][1] = -pawn;
-		   F[4][5] = -pawn;    F[5][1] = -pawn;    F[6][1] = -pawn;    F[7][1] = -pawn;
-		   F[0][6] =  pawn;    F[1][6] =  pawn;    F[2][6] =  pawn;    F[3][6] =  pawn;
-		   F[4][6] =  pawn;    F[5][6] =  pawn;    F[6][6] =  pawn;    F[7][6] =  pawn;
-		   F[0][7] = castle;   F[1][7] = knight;   F[2][7] = bishop;   F[3][7] = queen;
-		   F[4][7] = king;     F[5][7] = bishop;   F[6][7] = knight;   F[7][7] = castle;
-
-
-
+	
 		// Example 1: Initial Board 
 
-		/*
+		
 		   F[0][0] = -castle;  F[1][0] = -knight;  F[2][0] = -bishop;  F[3][0] = -queen;
 		   F[4][0] = -king;    F[5][0] = -bishop;  F[6][0] = -knight;  F[7][0] = -castle;
 		   F[0][1] = -pawn;    F[1][1] = -pawn;    F[2][1] = -pawn;    F[3][1] = -pawn;
@@ -1773,7 +1768,7 @@ int main(int argc,char *argv[]) {
 		   F[4][6] =  pawn;    F[5][6] =  pawn;    F[6][6] =  pawn;    F[7][6] =  pawn;
 		   F[0][7] = castle;   F[1][7] = knight;   F[2][7] = bishop;   F[3][7] = queen;
 		   F[4][7] = king;     F[5][7] = bishop;   F[6][7] = knight;   F[7][7] = castle;
-		  */ 
+		   
 
 		// Example 2 : Easy Check-Mate
 
