@@ -1445,7 +1445,6 @@ void benchmark() {
     for(i=0; i<8; i++) { for(j=0; j<8; j++) { F[i][j] = 0; } }
 
     player = -1;
-    //  With 4 moves
     F[3][7] = knight;
     F[0][5] = pawn;     F[4][5] = bishop; F[7][5] = -castle;
     F[3][4] = -pawn;    F[4][4] = king;
@@ -1481,8 +1480,27 @@ void benchmark() {
     timeval_subtract(&diff, &end, &begin);
     printf("Time Elapsed in Benchmark 4: %ld.%06ld\n", diff.tv_sec, diff.tv_usec);
 
+// BENCHMARK 5: Mate in 8 Modified by Madruguinha to use only 3. 
+// Source: http://www.chess.com/forum/view/endgames/mate-in-85 
 
+    for(i=0; i<8; i++) { for(j=0; j<8; j++) { F[i][j] = 0; } }
 
+    player = -1;
+    F[0][5] = pawn;
+    F[1][1] = -pawn; F[1][7] = knight;
+    F[2][0] = -king; F[2][2] = -bishop; F[2][4] = -pawn; F[2][5] = pawn;
+    F[3][3] = -queen;
+    F[4][2] = -pawn; F[4][6] = castle;
+    F[5][1] = -pawn; F[5][2] = king; F[5][6] = pawn; F[5][7] = castle;
+    F[6][0] = -castle;
+
+    printf("Starting Benchmark 5.\n");
+    print_field(F);
+    gettimeofday(&begin, NULL);
+    checkmate_path(F, player, 0);
+    gettimeofday(&end, NULL);
+    timeval_subtract(&diff, &end, &begin);
+    printf("Time Elapsed in Benchmark 5: %ld.%06ld\n", diff.tv_sec, diff.tv_usec);
 
 }
 
