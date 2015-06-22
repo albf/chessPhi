@@ -3,6 +3,7 @@
 #include <string.h>
 #include <pthread.h>
 #include<semaphore.h>
+#include<limits.h>
 // Pieces tables defines.
 // [isAlive, type, value, pos x, pos y]
 #define num_pieces 32
@@ -1415,7 +1416,7 @@ typedef struct sQ
 int score_minl2[64];
 struct moviment minl2[64];
 
-int score_maxl1=0;
+int score_maxl1=-1*INT_MAX;
 struct moviment maxl1;
 
 
@@ -1658,7 +1659,7 @@ void *Controller_Thread(void *args)
 	
 	printf("threads joined\n");
 
-	printf("Best move: (%d,%d) -> (%d,%d)\n",maxl1.l_pos_x,maxl1.l_pos_y,maxl1.pos_x,maxl1.l_pos_y);
+	printf("Best move: (%d,%d) -> (%d,%d)\n",maxl1.l_pos_x,maxl1.l_pos_y,maxl1.pos_x,maxl1.pos_y);
 
 	free(mov_counter);
 	return NULL;
@@ -1708,6 +1709,7 @@ void *Worker_Thread()
 			tmp2.player=tmp.player*-1;
 			tmp2.score=current_score+apply_move(F, P, &next);
 			tmp2.next=next;
+			tmp2.m1=tmp.m1;
 			tmp2.m2=next;
 			tmp2.max_depth=tmp.max_depth;
 
@@ -1829,7 +1831,10 @@ int main(int argc,char *argv[]) {
 
 	/* Board init */
 
-
+	for(i=0;i<64;i++)
+	{
+		score_minl2[i]=INT_MAX;
+	}
 
 
 	if(argc!=(64+1))
