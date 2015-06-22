@@ -218,7 +218,7 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
 
     ret->d_counter = D_COUNTER;
     D_COUNTER++;
-    
+
     for(i=0; i<32; i++) {
         // Discard dead or oponent pieces.
         if((P[i][0] < 1)||(P[i][1]*player<0)){
@@ -1305,8 +1305,11 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, double * sc
             if(next->refresh > 0) {                                 // If valid move was found.
                 current_score += apply_move(F,P,next);
                 
-                //printf("Move found\n");
+                //if(depth == 0) {
+                //printf("Move found n: %d\n", mov_counter[depth]-1);
+                //printf("Mov : %d, %d -> %d %d ; \n", next->l_pos_x, next->l_pos_y, next->pos_x, next->pos_y); 
                 //print_field(F);
+                //}
                 //current_score -= depth_factor;
                 depth++;
                 player = player * -1;                               // Invert player.
@@ -1383,9 +1386,16 @@ void checkmate_path(int F[8][8], int player, int parallel) {
             printf("Insert parallel version here.\n");
         }
         printf(">> Score : %lf. \n", score);
-        free(best_move);
+        if(score < 500) {
+            free(best_move);
+        }
     } while (score < 500);
     printf("Checkmate path found.\n");
+    printf("Mov : %d, %d -> %d %d ; \n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y); 
+    print_field(F);
+    do_move(F,best_move);
+    print_field(F);
+    free(best_move);
 }
 
 void benchmark() {
@@ -1451,6 +1461,26 @@ void benchmark() {
     gettimeofday(&end, NULL);
     timeval_subtract(&diff, &end, &begin);
     printf("Time Elapsed in Benchmark 3: %ld.%06ld\n", diff.tv_sec, diff.tv_usec);
+
+// BENCHMARK 4: Tie in 4  
+// Source: http://www.chess.com/forum/view/endgames/a-very-hard-puzzle modified by Madruguinha.
+
+    for(i=0; i<8; i++) { for(j=0; j<8; j++) { F[i][j] = 0; } }
+
+    player = -1;
+    F[1][7] = king; 
+    F[1][6] = -knight;      F[2][5] = -king;     F[5][6] = -bishop;    
+    F[6][1] = -pawn;
+    F[7][1] = -pawn;
+
+    printf("Starting Benchmark 4.\n");
+    print_field(F);
+    gettimeofday(&begin, NULL);
+    checkmate_path(F, player, 0);
+    gettimeofday(&end, NULL);
+    timeval_subtract(&diff, &end, &begin);
+    printf("Time Elapsed in Benchmark 4: %ld.%06ld\n", diff.tv_sec, diff.tv_usec);
+
 
 
 
