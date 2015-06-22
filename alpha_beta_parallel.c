@@ -1407,13 +1407,19 @@ typedef struct sQ
 	int player; /* last player */
 	int score; /* current score */
 	struct moviment next; /* last moviment */
+	struct moviment m1,m2;
 	int max_depth; /* game depth */
 }Queue;
+
+/* min level 2 */
+int score_minl2[64];
+struct moviment minl2[64];
 
 
 /* global queue declaration */
 
 int itens_level1;
+int itens_level2;
 int score_level1[64];
 Queue qlevel1[64];
 Queue qlevel2[64][64];
@@ -1573,6 +1579,7 @@ void *Controller_Thread(void *args)
 			tmp.player=myargs.player;
 			tmp.score=current_score+apply_move(myargs.F, P, &next);
 			tmp.next=next;
+			tmp.m1=next;
 			tmp.max_depth=myargs.max_depth;
 	
 
@@ -1667,6 +1674,7 @@ void *Worker_Thread()
 			tmp2.player=tmp.player*-1;
 			tmp2.score=current_score+apply_move(F, P, &next);
 			tmp2.next=next;
+			tmp2.m2=next;
 			tmp2.max_depth=tmp.max_depth;
 
 			
@@ -1689,6 +1697,8 @@ void *Worker_Thread()
 
 		
 		printf("Level %d Opened %d\n",index,check_size_line_level2(index));
+
+		itens_level2+=check_size_line_level2(index);
 
 		sem_wait(&semaphore);
 		set_test_level2(index);
@@ -1714,20 +1724,34 @@ void *Worker_Thread()
 	while(n!=-1)
 	{
 		Queue tmp=remove_level2(n);
+		int c=check_size_line_level2(n);
 		sem_post(&semaphore);
-		printf("Retirou da lista (%d,%d)\n",n,check_size_line_level2(n));
+		printf("Retirou da lista (%d,%d)\n",n,c);
+
 		copy_matrix2(F,tmp.F);
 		current_score=mount_pieces(F,P,tmp.player);
 
 		//print_field(F);
 	
 
-		//best_move = alpha_beta(F, max_depth, player, &score);
-
+		alpha_beta(F, tmp.max_depth, tmp.player, &tmp.score);
+		printf("A-B de %d,%d eh %d\n",n,c,tmp.score);
+		
 		sem_wait(&semaphore);
+
+		if(tmp.score<score_minl2[n])
+		{
+			score_minl2[n]=tmp.score;
+			minl2[n]=tmp.next;
+		}
+		
+		itens_level2--;
+
 		n=get_line_level2();
 	}
 	sem_post(&semaphore);
+
+	printf("saindo. itens %d\n",itens_level2);
 
 	return NULL;
 }
