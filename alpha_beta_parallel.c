@@ -1388,6 +1388,8 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, int * score
 	return best_move;
 }
 
+
+/* Thread arguments passing */
 typedef struct args
 {
 	int (*F)[8];
@@ -1397,28 +1399,127 @@ typedef struct args
 }Targs;
 
 
+/* Queue definition */
+
 typedef struct sQ
 {
-	int **F;
-	int player;
-	int score;
-	struct moviment next;
-	int max_depth;
+	int **F; /* current board */
+	int player; /* last player */
+	int score; /* current score */
+	struct moviment next; /* last moviment */
+	int max_depth; /* game depth */
 }Queue;
 
-Queue global_Q[64];
+/* global queue declaration */
+
+int itens_level1;
+int score_level1[64];
+Queue qlevel1[64];
+Queue qlevel2[64][64];
+int n_queue1=0;
+int n_n_queue2[64];
+
+void insert_level2(Queue Q,int line)
+{
+	qlevel2[line][n_n_queue2[line]]=Q;
+	n_n_queue2[line]++;
+}
+
+Queue remove_level2(int line)
+{
+	Queue tmp;
+	tmp=qlevel2[line][n_n_queue2[line]-1];
+	n_n_queue2[line]--;
+	return tmp;
+}
+
+int check_size_line_level2(int line)
+{
+	return n_n_queue2[line];
+}
+
+int get_line_level2()
+{
+	int i;
+	for(i=0;i<itens_level1;i++)
+	{
+		if(n_n_queue2[i]>0)
+			return i;
+	}
+	return -1;
+}
+
+void insert_level1(Queue Q)
+{
+	qlevel1[n_queue1]=Q;
+	n_queue1++;
+}
+
+Queue remove_level1()
+{
+	Queue tmp;
+	tmp=qlevel1[n_queue1-1];
+	n_queue1--;
+	return tmp;
+}
+
+int check_size_level1()
+{
+	return n_queue1;
+}
+
+
+/* sync */
 
 pthread_mutex_t q_lock;
 sem_t semaphore;
 
-int on_queue=0;
-int terminated=0;
-int init=0;
+/* allocate matrix */
+
+int **allocate_matrix()
+{
+	int i;
+	int **M;
+	M=(int**)malloc(sizeof(int*)*8);
+	for(i=0;i<8;i++)
+	{
+		M[i]=(int*)malloc(sizeof(int)*8);
+	}
+	return M;
+}
+
+void copy_matrix2(int (*D)[8],int **S)
+{
+	int i,j;
+	for(i=0;i<8;i++)
+	{
+		for(j=0;j<8;j++)
+		{
+			D[i][j]=S[i][j];
+		}
+	}
+}
+
+void copy_matrix(int **D,int S[8][8])
+{
+	int i,j;
+	for(i=0;i<8;i++)
+	{
+		for(j=0;j<8;j++)
+		{
+			D[i][j]=S[i][j];
+		}
+	}
+}
+
+
+/* level control */
+
+int start_level1=0;
 
 void *Controller_Thread(void *args)
 {
 	int **F;
-	int i,j;
 	int P[num_pieces][num_col];
 	int depth=0;
 	Targs myargs=*((Targs*)args);
@@ -1438,64 +1539,66 @@ void *Controller_Thread(void *args)
 
 	/* Spread tree */
 
+	sem_wait(&semaphore);
+
 	do{
 			printf("Try mov %d\n",mov_counter[depth]);
 			find_nth_move(myargs.F, P, mov_counter[depth], &next, myargs.player, depth);  // Find next move.
 	
-			/* copy F */
-			F=(int**)malloc(sizeof(int*)*8);
-			for(i=0;i<8;i++)
-			{
-				F[i]=(int*)malloc(sizeof(int)*8);
-			}
 
-			global_Q[mov_counter[depth]].F=F;	
-			global_Q[mov_counter[depth]].player=myargs.player*-1;
-			global_Q[mov_counter[depth]].score=current_score+apply_move(myargs.F, P, &next);
-			global_Q[mov_counter[depth]].next=next;
-			global_Q[mov_counter[depth]].max_depth=myargs.max_depth;
+			/*allocate */
+			F = allocate_matrix();
+
+			Queue tmp;
+			tmp.F=F;	
+			tmp.player=myargs.player;
+			tmp.score=current_score+apply_move(myargs.F, P, &next);
+			tmp.next=next;
+			tmp.max_depth=myargs.max_depth;
+	
+
+			insert_level1(tmp);
+			
+
 			print_field(myargs.F);
-			for(i=0;i<8;i++)
-			{
-				for(j=0;j<8;j++)
-				{
-					F[i][j]=myargs.F[i][j];
-				}
-			}
 
+			/* copy F */
+			copy_matrix(F,myargs.F);
+
+		
+			/* undo move */
 			undo_move(myargs.F, P, &next, depth);
+
+
+			/* update counter */
 			mov_counter[depth]++;
 	}while(next.refresh > 0);
 
 
-	sem_wait(&semaphore);
-	on_queue=mov_counter[depth]-1;
-	init=1;
-	printf("rodando com on_queue=%d\n",on_queue);
+	//remove refresh
+	remove_level1();
+
+
+	itens_level1=check_size_level1();
+	printf("level 1 size %d\n",check_size_level1());
+
+	start_level1=1;
+
+	sem_post(&semaphore);
+
+	//sem_wait(&semaphore);
+	
 	/* results join */
 
-
+	/*
 	while(terminated!=mov_counter[depth]-1)
 	{
 		sem_post(&semaphore);
 		sem_wait(&semaphore);
-	}
-	sem_post(&semaphore);
-	printf("threads joined\n");
-
-	int max=0;
-	int i_max=0;
-	for(i=0;i<mov_counter[depth];i++)
-	{
-		printf("%d|Score:%d\n",i,global_Q[i].score);
-		if(global_Q[i].score>max)
-		{
-			max=global_Q[i].score;
-			i_max=i;
-		}
-	}
-
-	printf("Best Move (%d,%d) -> (%d,%d)\n",global_Q[i_max].next.l_pos_x,global_Q[i_max].next.l_pos_y,global_Q[i_max].next.pos_x,global_Q[i_max].next.pos_y);
+	} */
+	//sem_post(&semaphore);
+	
+	//printf("threads joined\n");
 
 	free(mov_counter);
 	return NULL;
@@ -1505,55 +1608,66 @@ void *Controller_Thread(void *args)
 
 void *Worker_Thread()
 {
+	int P[num_pieces][num_col];
+	struct moviment next;
 	int F[8][8];
-	int i,j;
-	Queue mov;
-	struct moviment *best_move;
-	printf("I'm a Worker\n");
-
-
+	int **F2;
+	int mov_counter=0;
+	int current_score;
+	int index;
+	Queue tmp;
+	/* wait for level 1*/
 	sem_wait(&semaphore);
-	while(init==0 || on_queue>0)
-	{
-		
-		if(init==1){
-			mov = global_Q[on_queue-1];
-			printf("pop'ed mov %d %d to %d %d\n",mov.next.l_pos_x,mov.next.l_pos_y,mov.next.pos_x,mov.next.pos_y);
-			on_queue--;
-		
-			//sem_post(&semaphore);
-
-
-		
-			for(i=0;i<8;i++)
-			{
-				for(j=0;j<8;j++)
-				{
-					F[i][j]=mov.F[i][j];
-					//printf("%2d ",mov.F[i][j]);
-				}
-				free(mov.F[i]);
-				//printf("\n");
-			} 
-			free(mov.F);
-
-			//print_field(F);	
-
-
-			best_move = alpha_beta(F, mov.max_depth, mov.player, &mov.score);
-
-			printf("result %d %d %d %d\n",best_move->l_pos_x,best_move->l_pos_y,best_move->pos_x,best_move->l_pos_y);
-
-			//sem_wait(&semaphore);
-			terminated++;
-			printf("set terminated == %d\n",terminated);
-		}
+	while(start_level1==0){
 		sem_post(&semaphore);
 		sem_wait(&semaphore);
-		
 	}
-	sem_post(&semaphore);
 	
+	/* on level 1, read until finish data */
+	while(check_size_level1()>0)
+	{
+		index=check_size_level1()-1;
+		tmp=remove_level1();
+		printf("item %d removed\n",index);
+		sem_post(&semaphore);
+		copy_matrix2(F,tmp.F);
+		current_score=mount_pieces(F,P,tmp.player*-1);
+		do{
+			printf("Try mov (%d,%d)\n",index,mov_counter);
+			find_nth_move(F, P, mov_counter, &next, tmp.player*-1, 0);  // Find next move.
+			F2=allocate_matrix();
+			Queue tmp2;
+			tmp.F=F2;	
+			tmp.player=tmp.player*-1;
+			tmp.score=current_score+apply_move(F, P, &next);
+			tmp.next=next;
+			tmp.max_depth=tmp.max_depth;
+	
+			insert_level2(tmp2,index);
+			
+			print_field(F);
+
+			/* copy F */
+			copy_matrix(F2,F);
+
+			/* undo move */
+			undo_move(F, P, &next, 0);
+
+			mov_counter++;
+		}while(next.refresh > 0);
+
+		//remove refresh
+		remove_level2(index);
+
+		
+		printf("Level %d Opened %d\n",index,check_size_line_level2(index));
+
+		sem_wait(&semaphore);
+	}
+	/* finish level 1 */
+
+	sem_post(&semaphore);
+
 	return NULL;
 }
 
