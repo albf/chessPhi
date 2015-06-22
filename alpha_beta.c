@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+#include <sys/time.h>
 
 // Pieces tables defines.
 // [isAlive, type, value, pos x, pos y]
@@ -33,6 +33,7 @@
 int ALPHA_CUT = 0;
 int BETA_CUT = 0;
 int D_COUNTER = 0;
+int DEBUG = 0;
 
 // Represents a past moviment.
 struct moviment { 
@@ -121,18 +122,6 @@ void timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval
     long int diff = (t2->tv_usec + 1000000 * t2->tv_sec) - (t1->tv_usec + 1000000 * t1->tv_sec);
     result->tv_sec = diff / 1000000;
     result->tv_usec = diff % 1000000;
-}
-
-// Print a timeval struct
-void timeval_print(struct timeval *tv)
-{
-    char buffer[30];
-    time_t curtime;
-
-    printf("%ld.%06ld", tv->tv_sec, tv->tv_usec);
-    curtime = tv->tv_sec;
-    strftime(buffer, 30, "%m-%d-%Y  %T", localtime(&curtime));
-    printf(" = %s.%06ld\n", buffer, tv->tv_usec);
 }
 
 // Undo a given move, returns difference in score.
@@ -394,6 +383,7 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
             }
             // White castles/bishops/king/queen
             else if ((P[i][1] == -castle)||(P[i][1] == -queen)||(P[i][1] == -king)||(P[i][1] == -bishop)) {
+                // Castle
                 if ((P[i][1] == -castle)||(P[i][1] == -queen)||(P[i][1] == -king)) {
                     // Just try to move foward.
                     for(pos=1; (((y+pos)<8)&&(F[x][y+pos]>=0)) ; pos++) {
@@ -498,7 +488,7 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
                     if(m_c == n) {
                         break;
                     }
-                    
+
                     // Just try to move backward-right.
                     for(pos=1; (((y-pos)>=0)&&((x+pos)<8)&&(F[x+pos][y-pos]>=0)) ; pos++) {
                         m_c++;
@@ -510,6 +500,10 @@ void find_nth_move(int F[8][8], int P[num_pieces][num_col], int n, struct movime
                         if((F[x+pos][y-pos]>0)||(P[i][1] == -king)) {
                             break;
                         }
+                    }
+
+                    if(m_c == n) {
+                        break;
                     }
                     
                     // Just try to move backward-left.
@@ -1310,6 +1304,9 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, double * sc
             mov_counter[depth]++;                                   // Update depth counter.
             if(next->refresh > 0) {                                 // If valid move was found.
                 current_score += apply_move(F,P,next);
+                
+                //printf("Move found\n");
+                //print_field(F);
                 //current_score -= depth_factor;
                 depth++;
                 player = player * -1;                               // Invert player.
@@ -1372,12 +1369,12 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, double * sc
 // For benchmark propouses
 void checkmate_path(int F[8][8], int player, int parallel) {
     double score;
-    int max_depth=-1;
+    int max_depth=1;
     struct moviment * best_move;
 
     do {
         max_depth+=2;
-        printf("Checkmate in %d moves. \n", (max_depth+1)/2);
+        printf("Checkmate in %d moves. \n", ((max_depth+1)/2)-1);
         // TODO: Insert paralell option here to compare.
         if(parallel==0) {
             best_move = alpha_beta(F, max_depth, player, &score);
@@ -1392,7 +1389,70 @@ void checkmate_path(int F[8][8], int player, int parallel) {
 }
 
 void benchmark() {
-    struct timeval
+    struct timeval begin, end, diff;
+    int F[8][8], i, j, player;
+
+// BENCHMARK 1: Easy to see mate.
+// Source: Madruguinha
+
+    for(i=0; i<8; i++) { for(j=0; j<8; j++) { F[i][j] = 0; } }
+
+    player = -1;
+    F[6][0] = -castle;  F[7][1] = -castle;  F[7][0] = -king;
+    F[0][4] = king;     F[0][3] = pawn;     F[1][3] = pawn;    
+
+    printf("Starting Benchmark 1.\n");
+    print_field(F);
+    gettimeofday(&begin, NULL);
+    checkmate_path(F, player, 0);
+    gettimeofday(&end, NULL);
+    timeval_subtract(&diff, &end, &begin);
+    printf("Time Elapsed in Benchmark 1: %ld.%06ld\n", diff.tv_sec, diff.tv_usec);
+
+// BENCHMARK 2: "Mate in 6" 
+// source: http://www.chess.com/forum/view/endgames/mate-in-6-masters-only-d
+
+    for(i=0; i<8; i++) { for(j=0; j<8; j++) { F[i][j] = 0; } }
+
+    player = -1;
+    F[0][2] = -pawn;    F[3][2] = -pawn; 
+    F[0][3] = pawn;    
+    F[1][5] = pawn;     F[3][5] = -pawn;    
+    F[0][6] = -pawn;    F[2][6] =  -pawn;   F[3][6] =  pawn;
+    F[0][7] = -king;    F[2][7] = king;   
+   
+    printf("Starting Benchmark 2.\n");
+    print_field(F);
+    gettimeofday(&begin, NULL);
+    checkmate_path(F, player, 0);
+    gettimeofday(&end, NULL);
+    timeval_subtract(&diff, &end, &begin);
+    printf("Time Elapsed in Benchmark 2: %ld.%06ld\n", diff.tv_sec, diff.tv_usec);
+
+// BENCHMARK 3: Mate in 7 but modified to use only 4 moves.
+// Source : http://www.chess.com/forum/view/endgames/mate-in-7 - Modified by Madruguinha.
+
+    for(i=0; i<8; i++) { for(j=0; j<8; j++) { F[i][j] = 0; } }
+
+    player = -1;
+    //  With 4 moves
+    F[3][7] = knight;
+    F[0][5] = pawn;     F[4][5] = bishop; F[7][5] = -castle;
+    F[3][4] = -pawn;    F[4][4] = king;
+    F[1][3] = -queen;   F[6][3] = pawn;
+    F[4][2] = -king;
+    F[1][1] = -pawn;    F[5][1] = -pawn; 
+    
+
+    printf("Starting Benchmark 3.\n");
+    print_field(F);
+    gettimeofday(&begin, NULL);
+    checkmate_path(F, player, 0);
+    gettimeofday(&end, NULL);
+    timeval_subtract(&diff, &end, &begin);
+    printf("Time Elapsed in Benchmark 3: %ld.%06ld\n", diff.tv_sec, diff.tv_usec);
+
+
 
 }
 
@@ -1410,11 +1470,14 @@ int main(int argc,char *argv[]) {
     if(argc!=(64+1))
     {
 
-    for(i=0; i<8; i++) {
+    benchmark();
+    return 0;
+
+    /*for(i=0; i<8; i++) {
         for(j=0; j<8; j++) {
             F[i][j] = 0;
         }
-    }
+    }*/
 
 // Example 1: Initial Board 
 /*
