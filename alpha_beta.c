@@ -1571,7 +1571,7 @@ int main(int argc,char *argv[]) {
     
     best_move = alpha_beta(F, max_depth, player, &score);
     do_move(F,best_move);
-    printf("Mov : %d, %d -> %d %d ; Counter: %d ; Index: %d ; Score : %lf\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter, best_move->index, score);
+    printf("Mov : %2d, %2d -> %2d %2d ; Counter: %d ; Index: %d ; Score : %lf\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter, best_move->index, score);
 
     // Print Field for python parser. 
     print_field(F);

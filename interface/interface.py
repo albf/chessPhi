@@ -132,7 +132,8 @@ class ChessInterface(QtGui.QWidget):
         proc.stdin.write('q\n')
         out, err = proc.communicate()
         proc.wait()
-        search_for="Changing player"
+        search_for="Alpha Beta Finished"
+        #search_for="Changing player"
         index=out.find(search_for)
         l=[]
         for j in xrange(0,8):
