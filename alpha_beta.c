@@ -8,13 +8,6 @@
 #define num_pieces 32
 #define num_col 5
 
-#define col_is_alive 0
-#define col_pos_x 1
-#define col_pos_y 2
-#define col_k_index 3
-
-#define depth_factor 0.0625
-
 // Pieces Definitions, used later as index
 #define pawn 9
 #define pawn_value 1
@@ -1506,20 +1499,18 @@ void benchmark() {
 
 int main(int argc,char *argv[]) {
     int i, j;
-    //double score; 
-    //char c='c';
-    int player = -1;//, max_depth = 3;
+    double score; 
+    int player = -1, max_depth = 3;
     int F[8][8];
-    //struct moviment * best_move;
+    struct moviment * best_move;
 
     /* Board init */
 
 
     if(argc!=(64+1))
     {
-
-    benchmark();
-    return 0;
+        benchmark();
+        return 0;
 
     /*for(i=0; i<8; i++) {
         for(j=0; j<8; j++) {
@@ -1561,25 +1552,9 @@ int main(int argc,char *argv[]) {
 // Example 5 : Just 2 Kings. Will one kill each other?
 
     //F[6][6] = king;     F[6][5] = -king;    
-//    F[5][6] = -pawn;    F[4][1] = pawn;
+    //F[5][6] = -pawn;    F[4][1] = pawn;
     //F[1][2] = castle;
 
-// BENCHMARK 1: "Mate in 6" 
-// source: http://www.chess.com/forum/view/endgames/mate-in-6-masters-only-d
-
-    F[0][2] = -pawn;    F[3][2] = -pawn; 
-    F[0][3] = pawn;    
-    F[1][5] = pawn;     F[3][5] = -pawn;    
-    F[0][6] = -pawn;    F[2][6] =  -pawn;   F[3][6] =  pawn;
-    F[0][7] = -king;    F[2][7] = king;   
-
-
-// BENCHMARK 2: Easy to see mate.
-// Source: Madruguinha
-/*
-    F[6][0] = -castle;  F[7][1] = -castle;  F[7][0] = -king;
-    F[0][4] = king;     F[0][3] = pawn;     F[1][3] = pawn;    
-*/
 
     }else{
         for(i=0; i<8; i++) {
@@ -1591,24 +1566,17 @@ int main(int argc,char *argv[]) {
     }
 
     // Print Field for debug reasons.
-    print_field(F);
-    checkmate_path(F, player, 0);
+    //print_field(F);
+    //checkmate_path(F, player, 0);
     
-    /*while(c == 'c') {
-        best_move = alpha_beta(F, max_depth, player, &score);
-        do_move(F,best_move);
-        printf("Mov : %d, %d -> %d %d ; Counter: %d ; Index: %d ; Score : %lf\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter, best_move->index, score);
+    best_move = alpha_beta(F, max_depth, player, &score);
+    do_move(F,best_move);
+    printf("Mov : %d, %d -> %d %d ; Counter: %d ; Index: %d ; Score : %lf\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter, best_move->index, score);
 
-        // Print Field for debug reasons.
-        print_field(F);
-        //break;
-        printf("Changing player\n");
-        player = player*-1;
-        free(best_move);
-        scanf(" %c", &c);
-    }*/
-
+    // Print Field for python parser. 
+    print_field(F);
+    printf("Alpha Beta Finished\n");
+    free(best_move);
     
     return 0;
 }
-
