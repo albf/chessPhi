@@ -15,7 +15,7 @@
 \usepackage{listings}
 \usepackage[brazil]{babel} % em portugues brasileiro
 \floatsetup[table]{capposition=top} 
-\author{Alexandre Brisighello \& Marcus Felipe Botacin}
+\author{Alexandre Brisighello - 101350 \\ Marcus Felipe Botacin - 103338}
 \title{ChessPhi}
 %\bibliographystyle{IEEEtran}
 \renewcommand{\lstlistingname}{Listagem}
@@ -58,7 +58,7 @@ Score = \sum_{Peças de A} val(peças) - \sum_{Peças de B} val(peças)
 
 \begin{figure}[H]
 \centering
-\includegraphics[scale=1]{chess.png}
+\includegraphics[scale=1]{../presentation/huoChess_2.jpg}
 \end{figure}
 
 O funcionamento do alfa-beta-pruning é .....
@@ -73,8 +73,9 @@ Decidiu - se por abrir os 2 primeiros níveis da árvore em \textit{threads}, co
 
 Cada uma destas \textit{threads} executa o algoritmo serial para uma profundidade diminuidade de 2, se aproveitando da implementação serial em cada uma destas chamadas.
 
+Na implementação paralela, as \textit{threads} são criadas de antemão e funcionam num sistema semelhante a uma máquina de estados. No primeiro estado, a \textit{thread} principal gera os movimentos do próximo nível enquanto as \textit{worker threads} aguardam por trabalho, num sistema semelhante a produtor-consumidor. A partir de então, a \textit{thread} principal aguardar para recolher o resultado de todas as \textit{ẁorker threads (reduction)}.
 
-DUVIDA: Detalhes de sincronização ???
+No segundo estado, as \textit{worker threads} abrem o segundo nível, e também aguardam para realizar o \textit{reduction} destes. Os estados 3 e 4 são os \textit{reduction} em si, os quais são feitos por \textit{Min} e \textit{Max}, respectivamente, dado o algoritmo \textit{Minimax}. Se todas as \textit{threads} atingem o nível 4 e não há mais trabalho, o \textit{join} é realizado. Todas as barreiras foram implementadas com \textit{mutex+semaphore}.
 
 \section{Testes}
 
