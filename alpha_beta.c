@@ -1873,7 +1873,7 @@ void checkmate_path(int F[8][8], int player, int parallel) {
 	sem_destroy(&semaphore);
 
 
-	//do_move(F,best_move);
+	do_move(F,&maxl1);
     	print_field(F);
 
 	printf("finished a parallel step\n");
