@@ -47,61 +47,63 @@
 	\titlepage
 }
 
-\AtBeginSubsection[]
-{
-	\begin{frame}<beamer>
-		\frametitle{Tópicos}
-		\tableofcontents[currentsection,currentsubsection]
-	\end{frame}
-}
+%\AtBeginSubsection[]
+%{
+%	\begin{frame}<beamer>%
+%		\frametitle{Tópicos}
+%		\tableofcontents[currentsection,currentsubsection]
+%	\end{frame}
+%}
 
-\begin{frame}
- \frametitle{Tópicos}
- \tableofcontents
+%\begin{frame}
+% \frametitle{Tópicos}
+% \tableofcontents
 %   You might wish to add the option [pausesections]
-\end{frame}
+%\end{frame}
 
-\section{Implementação}
+\section{ChessPhi}
 
 %\subsection{ChessPhi}
 
 \begin{frame}
-  \frametitle{Requisitos e Objetivos}
+  \frametitle{Introdução}
 
 \begin{itemize}
 \item Jogo de Xadrez
 \item Xeon Phi
-\item \textit{Alfa Beta Prunning}
+\item \textit{Alpha Beta Pruning}
 \item \textit{Bag of Tasks}
+\item \textit{Benchmarks}
 \end{itemize}
 \end{frame}
 
-\begin{frame}
-\frametitle{Outra figura de alfa-beta-p}
-\begin{figure}[H]
-\centering
-\includegraphics[scale=1]{../docs/chess.png}
-\end{figure}
-\end{frame}
+%
+%\begin{frame}
+%\frametitle{Outra figura de alfa-beta-p}
+%\begin{figure}[H]
+%\centering
+%\includegraphics[scale=1]{../docs/chess.png}
+%\end{figure}
+%\end{frame}
+%
+%\begin{frame}
+%  \frametitle{Min-Max}
+%  \begin{figure}[!hpbt]
+%	  \centering
+%	  \begin{minipage}{1\textwidth}
+%		    \centering
+%		      \includegraphics[width=.8\linewidth]{minimax.png}
+%		        \caption{Exemplo}{Min-Max}
+%			  \label{fig:1}
+%		  \end{minipage}
+%	  \end{figure}
+%  \end{frame}
 
 \begin{frame}
-  \frametitle{Min-Max}
+  \frametitle{\textit{Alpha-Beta Pruning}}
   \begin{figure}[!hpbt]
 	  \centering
-	  \begin{minipage}{1\textwidth}
-		    \centering
-		      \includegraphics[width=.8\linewidth]{minimax.png}
-		        \caption{Exemplo}{Min-Max}
-			  \label{fig:1}
-		  \end{minipage}
-	  \end{figure}
-  \end{frame}
-
-\begin{frame}
-  \frametitle{Alfa-Beta}
-  \begin{figure}[!hpbt]
-	  \centering
-	  \begin{minipage}{1\textwidth}
+	  \begin{minipage}{0.8\textwidth}
 		    \centering
 		      \includegraphics[width=.8\linewidth]{huoChess_2.jpg}
 		        \caption{Exemplo}{Alfa-Beta}
