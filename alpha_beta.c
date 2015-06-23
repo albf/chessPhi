@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <limits.h>
 
 // Pieces tables defines.
 // [isAlive, type, value, pos x, pos y]
@@ -1362,33 +1365,539 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, double * sc
     return best_move;
 }
 
+
+/* Thread arguments passing */
+typedef struct args
+{
+	int (*F)[8];
+	int max_depth;
+	int player;
+	double *score;
+}Targs;
+
+
+/* Queue definition */
+
+typedef struct sQ
+{
+	int **F; /* current board */
+	int player; /* last player */
+	double score; /* current score */
+	struct moviment next; /* last moviment */
+	struct moviment m1,m2;
+	int max_depth; /* game depth */
+}Queue;
+
+/* min level 2 */
+int score_minl2[64];
+struct moviment minl2[64];
+
+int score_maxl1=-1*INT_MAX;
+struct moviment maxl1;
+
+
+
+
+/* global queue declaration */
+
+int itens_level1;
+int itens_level2;
+int score_level1[64];
+Queue qlevel1[64];
+Queue qlevel2[64][64];
+int n_queue1=0;
+int n_n_queue2[64];
+
+/* level control */
+
+int start_level1=0;
+int start_level2=0;
+int start_level3=0;
+
+int count_l1=0;
+
+int start_level4=0;
+
+void test_l4()
+{
+	if(count_l1==itens_level1)
+	{
+	start_level4=1;
+	}
+}
+
+
+
+
+
+int flags[64];
+
+void set_test_level2(int index)
+{
+	int i;
+	flags[index]=1;
+	for(i=0;i<itens_level1;i++)
+	{
+		if(flags[i]==0)
+		{
+			return ;
+		}
+	}
+	start_level2=1;
+}
+
+void test_level3()
+{
+	if(itens_level2==0)
+	{
+		start_level3=1;
+	}
+}
+
+void insert_level2(Queue Q,int line)
+{
+	qlevel2[line][n_n_queue2[line]]=Q;
+	n_n_queue2[line]++;
+}
+
+Queue remove_level2(int line)
+{
+	Queue tmp;
+	tmp=qlevel2[line][n_n_queue2[line]-1];
+	n_n_queue2[line]--;
+	return tmp;
+}
+
+int check_size_line_level2(int line)
+{
+	return n_n_queue2[line];
+}
+
+int get_line_level2()
+{
+	int i;
+	for(i=0;i<itens_level1;i++)
+	{
+		if(n_n_queue2[i]>0)
+			return i;
+	}
+	return -1;
+}
+
+void insert_level1(Queue Q)
+{
+	qlevel1[n_queue1]=Q;
+	n_queue1++;
+}
+
+Queue remove_level1()
+{
+	Queue tmp;
+	tmp=qlevel1[n_queue1-1];
+	n_queue1--;
+	return tmp;
+}
+
+int check_size_level1()
+{
+	return n_queue1;
+}
+
+
+/* sync */
+
+pthread_mutex_t q_lock;
+sem_t semaphore;
+
+/* allocate matrix */
+
+int **allocate_matrix()
+{
+	int i;
+	int **M;
+	M=(int**)malloc(sizeof(int*)*8);
+	for(i=0;i<8;i++)
+	{
+		M[i]=(int*)malloc(sizeof(int)*8);
+	}
+	return M;
+}
+
+void copy_matrix2(int (*D)[8],int **S)
+{
+	int i,j;
+	for(i=0;i<8;i++)
+	{
+		for(j=0;j<8;j++)
+		{
+			D[i][j]=S[i][j];
+		}
+	}
+}
+
+void copy_matrix(int **D,int S[8][8])
+{
+	int i,j;
+	for(i=0;i<8;i++)
+	{
+		for(j=0;j<8;j++)
+		{
+			D[i][j]=S[i][j];
+		}
+	}
+}
+
+
+
+void *Controller_Thread(void *args)
+{
+	int **F;
+	int P[num_pieces][num_col];
+	int depth=0;
+	Targs myargs=*((Targs*)args);
+	struct moviment next;
+
+
+	int *mov_counter;
+	double current_score;
+	mov_counter = (int *) malloc (sizeof(int)*(myargs.max_depth+1));
+
+	current_score = mount_pieces(myargs.F, P, myargs.player);     // Mount pieces table.
+
+	//printf("I'm the Brain\n");
+	//printf("Max %d player %d score %f\n",myargs.max_depth,myargs.player,*(myargs.score));
+	mov_counter[depth]=0;
+
+
+	/* Spread tree */
+
+	sem_wait(&semaphore);
+
+	do{
+			//printf("Try mov %d\n",mov_counter[depth]);
+			find_nth_move(myargs.F, P, mov_counter[depth], &next, myargs.player, depth);  // Find next move.
+	
+
+			/*allocate */
+			F = allocate_matrix();
+
+			Queue tmp;
+			tmp.F=F;	
+			tmp.player=myargs.player;
+			tmp.score=current_score+apply_move(myargs.F, P, &next);
+			tmp.next=next;
+			tmp.m1=next;
+			tmp.max_depth=myargs.max_depth;
+	
+
+			insert_level1(tmp);
+			
+
+			//print_field(myargs.F);
+
+			/* copy F */
+			copy_matrix(F,myargs.F);
+
+		
+			/* undo move */
+			undo_move(myargs.F, P, &next, depth);
+
+
+			/* update counter */
+			mov_counter[depth]++;
+	}while(next.refresh > 0);
+
+
+	//remove refresh
+	remove_level1();
+
+
+	itens_level1=check_size_level1();
+	//printf("level 1 size %d\n",check_size_level1());
+
+	start_level1=1;
+
+	sem_post(&semaphore);
+
+	
+	
+	sem_wait(&semaphore);
+	
+	/* results join */
+
+	
+	while(start_level4==0)
+	{
+		sem_post(&semaphore);
+		sem_wait(&semaphore);
+	} 
+	sem_post(&semaphore);
+	
+	//printf("threads joined\n");
+
+	//printf("Best move: (%d,%d) -> (%d,%d)\n",maxl1.l_pos_x,maxl1.l_pos_y,maxl1.pos_x,maxl1.pos_y);
+
+	*myargs.score=score_maxl1;
+
+	//apply_move(myargs.F, P, &maxl1);
+
+	//print_field(myargs.F);
+
+
+	free(mov_counter);
+	return NULL;
+}
+
+
+
+void *Worker_Thread()
+{
+	int P[num_pieces][num_col];
+	struct moviment next;
+	int F[8][8];
+	int **F2;
+	int mov_counter=0;
+	int current_score;
+	int index;
+	Queue tmp;
+	/* wait for level 1*/
+	sem_wait(&semaphore);
+	while(start_level1==0){
+		sem_post(&semaphore);
+		sem_wait(&semaphore);
+	}
+	
+	/* on level 1, read until finish data */
+	while(check_size_level1()>0)
+	{
+		index=check_size_level1()-1;
+		tmp=remove_level1();
+		//printf("item %d removed\n",index);
+		sem_post(&semaphore);
+		copy_matrix2(F,tmp.F);
+
+
+		/* teste */
+
+		current_score=mount_pieces(F,P,tmp.player*-1);
+
+
+
+		do{
+			//printf("Try mov (%d,%d)\n",index,mov_counter);
+			find_nth_move(F, P, mov_counter, &next, tmp.player*-1, 0);  // Find next move.
+			F2=allocate_matrix();
+			Queue tmp2;
+			tmp2.F=F2;	
+			tmp2.player=tmp.player*-1;
+			tmp2.score=current_score+apply_move(F, P, &next);
+			tmp2.next=next;
+			tmp2.m1=tmp.m1;
+			tmp2.m2=next;
+			tmp2.max_depth=tmp.max_depth;
+
+			
+			insert_level2(tmp2,index);
+		
+
+			//print_field(F);
+
+			/* copy F */
+			copy_matrix(F2,F);
+
+			/* undo move */
+			undo_move(F, P, &next, 0);
+
+			mov_counter++;
+		}while(next.refresh > 0);
+
+		//remove refresh
+		remove_level2(index);
+
+		
+		//printf("Level %d Opened %d\n",index,check_size_line_level2(index));
+
+		sem_wait(&semaphore);
+
+		itens_level2+=check_size_line_level2(index);
+		set_test_level2(index);
+
+	
+		while(start_level3==0)
+		{
+			sem_post(&semaphore);
+			sem_wait(&semaphore);
+		}
+
+		//printf("chegou level3\n");
+	
+		//printf("best de %d eh %d\n",index,score_minl2[index]);
+
+		if(score_minl2[index]>score_maxl1)
+		{
+			score_maxl1=score_minl2[index];
+			maxl1=minl2[index];
+		}
+		count_l1++;
+		//printf("count eh %d\n",count_l1);
+
+		test_l4();
+
+
+
+	}
+	/* finish level 1 */
+
+	sem_post(&semaphore);
+
+	/* start level 2 */
+
+	sem_wait(&semaphore);
+	while(start_level2==0)
+	{
+		sem_post(&semaphore);
+		sem_wait(&semaphore);
+	}
+	sem_post(&semaphore);
+
+	//printf("level2\n");
+
+	sem_wait(&semaphore);
+	int n=get_line_level2();
+	while(n!=-1)
+	{
+		Queue tmp=remove_level2(n);
+		//int c=check_size_line_level2(n);
+		sem_post(&semaphore);
+		//printf("Retirou da lista (%d,%d)\n",n,c);
+
+		copy_matrix2(F,tmp.F);
+		current_score=mount_pieces(F,P,tmp.player);
+
+		//print_field(F);
+	
+
+		alpha_beta(F, tmp.max_depth, tmp.player, &tmp.score);
+		//printf("A-B de %d,%d eh %f\n",n,c,tmp.score);
+		
+		sem_wait(&semaphore);
+
+		if(tmp.score<score_minl2[n])
+		{
+			score_minl2[n]=tmp.score;
+			minl2[n]=tmp.m1;
+		}
+		
+		itens_level2--;
+
+		n=get_line_level2();
+	}
+	sem_post(&semaphore);
+
+
+	test_level3();
+	//printf("saindo. itens %d\n",itens_level2);
+
+	return NULL;
+}
+
+void init_things()
+{
+	int i;
+	/* mudar para init de todas as vars */
+	for(i=0;i<64;i++)
+	{
+		score_minl2[i]=INT_MAX;
+		score_level1[i]=0;
+		n_n_queue2[i]=0;
+		flags[i]=0;
+	}
+
+	score_maxl1=-1*INT_MAX;
+	itens_level1=0;
+	itens_level2=0;
+	n_queue1=0;
+	start_level1=0;
+	start_level2=0;
+	start_level3=0;
+	count_l1=0;
+	start_level4=0;
+
+
+}
+
+
+#define TEST_PARALLEL
+
 // For benchmark propouses
 void checkmate_path(int F[8][8], int player, int parallel) {
     double score;
-    int max_depth=1;
+    int i;
+    int max_depth=3,threads=60;;
     struct moviment * best_move;
+    pthread_t* worker_thread_handles;
+   pthread_t main_thread_handle;
 
     do {
         max_depth+=2;
         printf("Checkmate in %d moves. \n", ((max_depth+1)/2)-1);
         // TODO: Insert paralell option here to compare.
         if(parallel==0) {
+
             best_move = alpha_beta(F, max_depth, player, &score);
         }
         else {
-            printf("Insert parallel version here.\n");
+
+        printf("parallel version here.\n");
+	init_things();		
+
+	worker_thread_handles = malloc(threads*sizeof(pthread_t));
+	pthread_mutex_init(&q_lock,NULL);
+        sem_init(&semaphore,0,1);
+
+	Targs args;
+	args.F=F;
+	args.max_depth=max_depth-2;
+	args.player=player;
+	args.score=&score;
+	pthread_create(&main_thread_handle,NULL,Controller_Thread,(void*)&args);
+	for (i = 0; i < threads; i++)
+		pthread_create(&worker_thread_handles[i], NULL, Worker_Thread,NULL);
+	for (i = 0; i < threads; i++)
+		pthread_join(worker_thread_handles[i], NULL);
+	pthread_join(main_thread_handle,NULL);
+
+	free(worker_thread_handles);
+
+	pthread_mutex_destroy(&q_lock);
+	sem_destroy(&semaphore);
+
+
+	//do_move(F,best_move);
+    	print_field(F);
+
+	printf("finished a parallel step\n");
         }
+
         printf(">> Score : %lf. \n", score);
+
+	#ifndef TEST_PARALLEL
         if(score < 500) {
             free(best_move);
         }
+	#endif
+
     } while (score < 500);
+
     printf("Checkmate path found.\n");
+
+    #ifndef TEST_PARALLEL
     printf("Mov : %d, %d -> %d %d ; \n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y); 
     print_field(F);
     do_move(F,best_move);
     print_field(F);
     free(best_move);
+    #endif
 }
 
 void benchmark() {
@@ -1407,7 +1916,14 @@ void benchmark() {
     printf("Starting Benchmark 1.\n");
     print_field(F);
     gettimeofday(&begin, NULL);
+    
+
+#ifdef TEST_PARALLEL
+    checkmate_path(F,player,1);
+#else
     checkmate_path(F, player, 0);
+#endif
+
     gettimeofday(&end, NULL);
     timeval_subtract(&diff, &end, &begin);
     printf("Time Elapsed in Benchmark 1: %ld.%06ld\n", diff.tv_sec, diff.tv_usec);
