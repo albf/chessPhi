@@ -1,3 +1,11 @@
+/* ChessPhi - Parallel Chess Moviments Tips
+ * MO644/MC970 Programação Paralela (1s15)
+ * Prof. Guido - IC - UNICAMP
+ * Final Project
+ * Alexandre Brisighello - 101350
+ * Marcus Botacin - 103338
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1564,6 +1572,8 @@ void *Controller_Thread(void *args)
 
 	current_score = mount_pieces(myargs.F, P, myargs.player);     // Mount pieces table.
 
+
+	//printf("base score %f\n",current_score);
 	//printf("I'm the Brain\n");
 	//printf("Max %d player %d score %f\n",myargs.max_depth,myargs.player,*(myargs.score));
 	mov_counter[depth]=0;
@@ -1585,6 +1595,7 @@ void *Controller_Thread(void *args)
 			tmp.F=F;	
 			tmp.player=myargs.player;
 			tmp.score=current_score+apply_move(myargs.F, P, &next);
+			//printf("abriu score %f\n",tmp.score);
 			tmp.next=next;
 			tmp.m1=next;
 			tmp.max_depth=myargs.max_depth;
@@ -1691,6 +1702,7 @@ void *Worker_Thread()
 			tmp2.F=F2;	
 			tmp2.player=tmp.player*-1;
 			tmp2.score=current_score+apply_move(F, P, &next);
+
 			tmp2.next=next;
 			tmp2.m1=tmp.m1;
 			tmp2.m2=next;
@@ -1708,9 +1720,12 @@ void *Worker_Thread()
 			/* undo move */
 			undo_move(F, P, &next, 0);
 
+
+
 			mov_counter++;
 		}while(next.refresh > 0);
 
+		free(tmp.F);
 		//remove refresh
 		remove_level2(index);
 
@@ -1775,10 +1790,12 @@ void *Worker_Thread()
 		current_score=mount_pieces(F,P,tmp.player);
 
 		//print_field(F);
-	
 
-		alpha_beta(F, tmp.max_depth, tmp.player, &tmp.score);
-		//printf("A-B de %d,%d eh %f\n",n,c,tmp.score);
+		tmp.score=current_score;
+
+		// -1 -> other player
+		alpha_beta(F, tmp.max_depth, -1*tmp.player, &tmp.score);
+		//printf("A-B eh %f\n",tmp.score);
 		
 		sem_wait(&semaphore);
 
@@ -1790,6 +1807,7 @@ void *Worker_Thread()
 		
 		itens_level2--;
 
+		free(tmp.F);
 		n=get_line_level2();
 	}
 	sem_post(&semaphore);
@@ -1827,7 +1845,6 @@ void init_things()
 }
 
 
-#define TEST_PARALLEL
 
 // For benchmark propouses
 void checkmate_path(int F[8][8], int player, int parallel) {
@@ -1881,26 +1898,25 @@ void checkmate_path(int F[8][8], int player, int parallel) {
 
         printf(">> Score : %lf. \n", score);
 
-	#ifndef TEST_PARALLEL
-        if(score < 500) {
+        if(parallel==0 && score < 500) {
             free(best_move);
         }
-	#endif
 
     } while (score < 500);
 
     printf("Checkmate path found.\n");
 
-    #ifndef TEST_PARALLEL
+    if(parallel==0)
+    {
     printf("Mov : %d, %d -> %d %d ; \n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y); 
     print_field(F);
     do_move(F,best_move);
     print_field(F);
     free(best_move);
-    #endif
+    }
 }
 
-void benchmark() {
+void benchmark(int parallel) {
     struct timeval begin, end, diff;
     int F[8][8], i, j, player;
 
@@ -1918,11 +1934,7 @@ void benchmark() {
     gettimeofday(&begin, NULL);
     
 
-#ifdef TEST_PARALLEL
-    checkmate_path(F,player,1);
-#else
-    checkmate_path(F, player, 0);
-#endif
+    checkmate_path(F,player,parallel);
 
     gettimeofday(&end, NULL);
     timeval_subtract(&diff, &end, &begin);
@@ -2014,6 +2026,9 @@ void benchmark() {
 }
 
 int main(int argc,char *argv[]) {
+
+    int parallel=1;
+
     int i, j;
     double score; 
     int player = -1, max_depth = 3;
@@ -2025,7 +2040,7 @@ int main(int argc,char *argv[]) {
 
     if(argc!=(64+1))
     {
-        benchmark();
+        benchmark(parallel);
         return 0;
 
     /*for(i=0; i<8; i++) {
