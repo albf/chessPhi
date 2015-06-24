@@ -1844,16 +1844,41 @@ void init_things()
 
 }
 
+void parallel_chess(int (*F)[8],int max_depth,int player,double *score)
+{
+	int i,threads=60;
+	pthread_t* worker_thread_handles;
+	pthread_t main_thread_handle;
+
+	init_things();		
+	worker_thread_handles = malloc(threads*sizeof(pthread_t));
+	pthread_mutex_init(&q_lock,NULL);
+        sem_init(&semaphore,0,1);
+
+	Targs args;
+	args.F=F;
+	args.max_depth=max_depth-2;
+	args.player=player;
+	args.score=score;
+	pthread_create(&main_thread_handle,NULL,Controller_Thread,(void*)&args);
+	for (i = 0; i < threads; i++)
+		pthread_create(&worker_thread_handles[i], NULL, Worker_Thread,NULL);
+	for (i = 0; i < threads; i++)
+		pthread_join(worker_thread_handles[i], NULL);
+	pthread_join(main_thread_handle,NULL);
+
+	free(worker_thread_handles);
+
+	pthread_mutex_destroy(&q_lock);
+	sem_destroy(&semaphore);
+}
 
 
 // For benchmark propouses
 void checkmate_path(int F[8][8], int player, int parallel) {
     double score;
-    int i;
-    int max_depth=3,threads=60;;
+    int max_depth=3;
     struct moviment * best_move;
-    pthread_t* worker_thread_handles;
-   pthread_t main_thread_handle;
 
     do {
         max_depth+=2;
@@ -1866,29 +1891,7 @@ void checkmate_path(int F[8][8], int player, int parallel) {
         else {
 
         printf("parallel version here.\n");
-	init_things();		
-
-	worker_thread_handles = malloc(threads*sizeof(pthread_t));
-	pthread_mutex_init(&q_lock,NULL);
-        sem_init(&semaphore,0,1);
-
-	Targs args;
-	args.F=F;
-	args.max_depth=max_depth-2;
-	args.player=player;
-	args.score=&score;
-	pthread_create(&main_thread_handle,NULL,Controller_Thread,(void*)&args);
-	for (i = 0; i < threads; i++)
-		pthread_create(&worker_thread_handles[i], NULL, Worker_Thread,NULL);
-	for (i = 0; i < threads; i++)
-		pthread_join(worker_thread_handles[i], NULL);
-	pthread_join(main_thread_handle,NULL);
-
-	free(worker_thread_handles);
-
-	pthread_mutex_destroy(&q_lock);
-	sem_destroy(&semaphore);
-
+	parallel_chess(F,max_depth,player,&score);	
 
 	do_move(F,&maxl1);
     	print_field(F);
