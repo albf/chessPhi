@@ -1712,9 +1712,12 @@ void *Worker_Thread()
 			/* undo move */
 			undo_move(F, P, &next, 0);
 
+
+
 			mov_counter++;
 		}while(next.refresh > 0);
 
+		free(tmp.F);
 		//remove refresh
 		remove_level2(index);
 
@@ -1796,6 +1799,7 @@ void *Worker_Thread()
 		
 		itens_level2--;
 
+		free(tmp.F);
 		n=get_line_level2();
 	}
 	sem_post(&semaphore);
