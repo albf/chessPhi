@@ -1,4 +1,19 @@
-Serial - O3
+0) Moves required:
+B1: 4 
+B3: 3
+B4: 4
+B5: 3
+
+1) Serial 
+-Wall -Wextra -lpthread -lm
+CPU : Intel(R) Core(TM) i5-3570 CPU @ 3.40GHz
+
+B1 : 179.979380
+B3 : 119.793657
+B4 : 48.073817 
+B5 : 716.275536 
+
+2) Serial - O3
 -O3 -Wall -Wextra -lpthread -lm
 CPU : Intel(R) Core(TM) i5-3570 CPU @ 3.40GHz
 
