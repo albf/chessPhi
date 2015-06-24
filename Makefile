@@ -1,11 +1,8 @@
-CFLAGS = -g -Wall -Wextra 
+CFLAGS = -g -Wall -Wextra -lpthread -lm
 
-all: serial parallel
+all: alpha_beta
 
-serial:
-	gcc alpha_beta.c -o alpha_beta $(CFLAGS) -pthread
-
-parallel:
-	gcc alpha_beta_parallel.c -o alpha_beta_parallel $(CFLAGS) -lpthread 
+alpha_beta:
+	gcc alpha_beta.c -o alpha_beta $(CFLAGS)
 gdb:
 	gdb --args ./alpha_beta
