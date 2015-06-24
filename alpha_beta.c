@@ -1774,8 +1774,6 @@ void *Worker_Thread()
 		{
 			pthread_mutex_lock(&mut_l2);
 			pthread_cond_wait(&sig_l2,&mut_l2);
-			//sem_post(&semaphore);
-			//sem_wait(&semaphore);
 			pthread_mutex_unlock(&mut_l2);
 		}
 
