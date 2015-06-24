@@ -42,4 +42,14 @@ B3 :
 B4 : 
 B5 :
 
+5) Xeon phi threads=100 threads=500
+B1: 349.381132	364.539261
+B3: 829.560547 
+B4: abort
+B5: abort
 
+6) Xeon parallel 60 sem otimização
+B1: 91.295961
+B3: 121.004041
+B4: 48.391236
+B5: 725.070836
