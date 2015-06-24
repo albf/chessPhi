@@ -28,6 +28,7 @@ king=1
 #interface class block
 
 class ChessInterface(QtGui.QWidget):
+    depth=3 # default
     grid=[] # img grid
     oldx=-1 # old mouse positions (just for initialization)
     oldy=-1
@@ -123,6 +124,14 @@ class ChessInterface(QtGui.QWidget):
                 if(piece==-1):
                     return "images/king_white_on_black.png"
 
+    #text handler
+    def text_event(self,text):
+        old=self.depth
+        try:
+            self.depth=int(text)
+        except:
+            self.depth=old
+
     # another player move
     def on_click3(self):
         # call alpha beta
@@ -131,7 +140,7 @@ class ChessInterface(QtGui.QWidget):
             for j in xrange(7,-1,-1):
                 command.append(str(self.board[j][i]))
         command.append(str(1))
-        command.append(str(3))
+        command.append(str(self.depth))
         command.append(str(0))
 
         proc=subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE,stdin=subprocess.PIPE)
@@ -159,7 +168,7 @@ class ChessInterface(QtGui.QWidget):
             for j in xrange(7,-1,-1):
                 command.append(str(self.board[j][i]))
         command.append(str(1))
-        command.append(str(3))
+        command.append(str(self.depth))
         command.append(str(0))
         proc=subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE,stdin=subprocess.PIPE)
         proc.stdin.write('q\n')
@@ -194,7 +203,7 @@ class ChessInterface(QtGui.QWidget):
             for j in xrange(7,-1,-1):
                 command.append(str(self.board[j][i]))
         command.append(str(-1))
-        command.append(str(3))
+        command.append(str(self.depth))
         command.append(str(0))
         proc=subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE,stdin=subprocess.PIPE)
         proc.stdin.write('q\n')
@@ -229,7 +238,7 @@ class ChessInterface(QtGui.QWidget):
             for j in xrange(7,-1,-1):
                 command.append(str(self.board[j][i]))
         command.append(str(-1))
-        command.append(str(3))
+        command.append(str(self.depth))
         command.append(str(0))
 
         proc=subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE,stdin=subprocess.PIPE)
@@ -382,7 +391,9 @@ class ChessInterface(QtGui.QWidget):
         btn.resize(btn.sizeHint())
         self.grid.addWidget(btn,4,8)
 
-
+        qle = QtGui.QLineEdit()
+        qle.textChanged[str].connect(self.text_event)
+        self.grid.addWidget(qle,5,8)
 
         self.grid.setHorizontalSpacing(0)
         self.grid.setVerticalSpacing(0)
