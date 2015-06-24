@@ -123,6 +123,69 @@ class ChessInterface(QtGui.QWidget):
                 if(piece==-1):
                     return "images/king_white_on_black.png"
 
+    # another player move
+    def on_click3(self):
+        # call alpha beta
+        command=["../alpha_beta"]
+        for i in xrange(0,8):
+            for j in xrange(7,-1,-1):
+                command.append(str(self.board[j][i]))
+        command.append(str(1))
+        command.append(str(3))
+        command.append(str(0))
+
+        proc=subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE,stdin=subprocess.PIPE)
+        proc.stdin.write('q\n')
+        out, err = proc.communicate()
+        proc.wait()
+        # Search for moviment string
+        search_for="Mov : "
+        index=out.find(search_for)
+        # parse stdout long string
+        xbase=int(out[index+7:index+8])
+        ybase=int(out[index+11:index+12])
+        xdest=int(out[index+17:index+18])
+        ydest=int(out[index+20:index+21])
+        # show widget information
+        w = QWidget()
+        QMessageBox.information(w,"Action","Move ("+str(xbase)+","+str(ybase)+") -> ("+str(xdest)+","+str(ydest)+")","Ok")
+
+
+
+    def on_click4(self):
+        #call alpha beta
+        command=["../alpha_beta"]
+        for i in xrange(0,8):
+            for j in xrange(7,-1,-1):
+                command.append(str(self.board[j][i]))
+        command.append(str(1))
+        command.append(str(3))
+        command.append(str(0))
+        proc=subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE,stdin=subprocess.PIPE)
+        proc.stdin.write('q\n')
+        out, err = proc.communicate()
+        proc.wait()
+        #search for last words
+        search_for="Alpha Beta Finished"
+        index=out.find(search_for)
+        l=[]
+        # get position by position
+        for j in xrange(0,8):
+            for i in xrange(0,8):
+                l.append(out[index-5:index-2])
+                index=index-4
+            index=index-1
+        #reverse order
+        for i in xrange(0,8):
+            for j in xrange(0,8):
+                #update board, update grid view
+                self.board[i][j]=l[63-(8*i)-j]
+                label = QLabel()
+                pixmap=QPixmap(self.img_name(i,j,self.board[i][j]))
+                label.setPixmap(pixmap)
+                label.show()
+                self.grid.addWidget(label,i,j)
+
     # click on serial move
     def on_click2(self):
         #call alpha beta
@@ -130,6 +193,9 @@ class ChessInterface(QtGui.QWidget):
         for i in xrange(0,8):
             for j in xrange(7,-1,-1):
                 command.append(str(self.board[j][i]))
+        command.append(str(-1))
+        command.append(str(3))
+        command.append(str(0))
         proc=subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE,stdin=subprocess.PIPE)
         proc.stdin.write('q\n')
         out, err = proc.communicate()
@@ -162,6 +228,10 @@ class ChessInterface(QtGui.QWidget):
         for i in xrange(0,8):
             for j in xrange(7,-1,-1):
                 command.append(str(self.board[j][i]))
+        command.append(str(-1))
+        command.append(str(3))
+        command.append(str(0))
+
         proc=subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE,stdin=subprocess.PIPE)
         proc.stdin.write('q\n')
         out, err = proc.communicate()
@@ -290,16 +360,29 @@ class ChessInterface(QtGui.QWidget):
         btn.clicked.connect(exit)
         btn.resize(btn.sizeHint())
         self.grid.addWidget(btn,0,8)
-        btn=QPushButton('Serial Tip!',w)
+        btn=QPushButton('Serial Tip! (P1)',w)
         btn.setToolTip('Click to get a hint!')
         btn.clicked.connect(self.on_click)
         btn.resize(btn.sizeHint())
         self.grid.addWidget(btn,1,8)
-        btn=QPushButton('Serial Move!',w)
+        btn=QPushButton('Serial Move! (P1)',w)
         btn.setToolTip('Click to get a move!')
         btn.clicked.connect(self.on_click2)
         btn.resize(btn.sizeHint())
         self.grid.addWidget(btn,2,8)
+
+        btn=QPushButton('Serial Tip! (P2)',w)
+        btn.setToolTip('Click to get a hint!')
+        btn.clicked.connect(self.on_click3)
+        btn.resize(btn.sizeHint())
+        self.grid.addWidget(btn,3,8)
+        btn=QPushButton('Serial Move! (P2)',w)
+        btn.setToolTip('Click to get a move!')
+        btn.clicked.connect(self.on_click4)
+        btn.resize(btn.sizeHint())
+        self.grid.addWidget(btn,4,8)
+
+
 
         self.grid.setHorizontalSpacing(0)
         self.grid.setVerticalSpacing(0)

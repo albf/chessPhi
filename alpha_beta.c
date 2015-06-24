@@ -2037,8 +2037,8 @@ int main(int argc,char *argv[]) {
 
     /* Board init */
 
-
-    if(argc!=(64+1))
+    /* name + board + player + depth + parallel */
+    if(argc!=(1+64+1+1+1))
     {
         benchmark(parallel);
         return 0;
@@ -2093,7 +2093,9 @@ int main(int argc,char *argv[]) {
                 F[i][j] = atoi(argv[((8*i)+j)+1]);
             }
         }
-
+	player=atoi(argv[65]);
+	max_depth=atoi(argv[66]);
+	parallel=atoi(argv[67]);
     }
 
     // Print Field for debug reasons.
