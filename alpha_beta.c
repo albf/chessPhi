@@ -1529,6 +1529,9 @@ int check_size_level1()
 
 pthread_mutex_t mut_l1=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t sig_l1=PTHREAD_COND_INITIALIZER;
+pthread_mutex_t mut_l0=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t sig_l0=PTHREAD_COND_INITIALIZER;
+
 
 pthread_mutex_t q_lock;
 sem_t semaphore;
@@ -1653,13 +1656,13 @@ void *Controller_Thread(void *args)
 
 	itens_level1=check_size_level1();
 
+	pthread_mutex_lock(&mut_l0);
 	start_level1=1;
+	pthread_cond_broadcast(&sig_l0);
+	pthread_mutex_unlock(&mut_l0);
 
 	sem_post(&semaphore);
 
-	
-	
-	//sem_wait(&semaphore);
 	
 	/* results join */
 
@@ -1669,11 +1672,7 @@ void *Controller_Thread(void *args)
 		pthread_mutex_lock(&mut_l1);
 		pthread_cond_wait(&sig_l1,&mut_l1);
 		pthread_mutex_unlock(&mut_l1);
-		//sem_post(&semaphore);
-		//sem_wait(&semaphore);
 	} 
-	//sem_post(&semaphore);
-	
 
 	/* all slaves terminated, max is set, just use it */
 
@@ -1696,12 +1695,14 @@ void *Worker_Thread()
 	int index;
 	Queue tmp;
 	/* wait for level 1*/
-	sem_wait(&semaphore);
+
+	pthread_mutex_lock(&mut_l0);
 	while(start_level1==0){
-		sem_post(&semaphore);
-		sem_wait(&semaphore);
+		pthread_cond_wait(&sig_l0,&mut_l0);
 	}
+	pthread_mutex_unlock(&mut_l0);
 	
+	sem_wait(&semaphore);
 	/* on level 1, read until finish data */
 	while(check_size_level1()>0)
 	{
