@@ -21,3 +21,25 @@ B1 : 65.600464
 B3 : 47.113608
 B4 : 18.444237
 B5 : 274.128569
+
+3) Parallel - O2
+-O2 -Wall -Wextra -lpthread -lm
+CPU : Intel(R) Core(TM) i5-3570 CPU @ 3.40GHz
+num_threads = 60
+
+B1 : 56.404099 
+B3 : 47.865070 
+B4 : 18.915666
+B5 : 279.462540
+
+4) Parallel - O2
+-O2 -Wall -Wextra -lpthread -lm
+CPU : Intel(R) Core(TM) i5-3570 CPU @ 3.40GHz
+num_threads = 4
+
+B1 : 
+B3 : 
+B4 : 
+B5 :
+
+
