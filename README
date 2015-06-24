@@ -1,0 +1,4 @@
+1. Next Move:
+./alpha_beta <[board]> <player> (-1/1) <depth> <serial/parallel> (0/1)
+2. Benchmark:
+./alpha_beta (no args)
