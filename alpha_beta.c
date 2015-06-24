@@ -1564,6 +1564,8 @@ void *Controller_Thread(void *args)
 
 	current_score = mount_pieces(myargs.F, P, myargs.player);     // Mount pieces table.
 
+
+	//printf("base score %f\n",current_score);
 	//printf("I'm the Brain\n");
 	//printf("Max %d player %d score %f\n",myargs.max_depth,myargs.player,*(myargs.score));
 	mov_counter[depth]=0;
@@ -1585,6 +1587,7 @@ void *Controller_Thread(void *args)
 			tmp.F=F;	
 			tmp.player=myargs.player;
 			tmp.score=current_score+apply_move(myargs.F, P, &next);
+			//printf("abriu score %f\n",tmp.score);
 			tmp.next=next;
 			tmp.m1=next;
 			tmp.max_depth=myargs.max_depth;
@@ -1691,6 +1694,7 @@ void *Worker_Thread()
 			tmp2.F=F2;	
 			tmp2.player=tmp.player*-1;
 			tmp2.score=current_score+apply_move(F, P, &next);
+
 			tmp2.next=next;
 			tmp2.m1=tmp.m1;
 			tmp2.m2=next;
@@ -1775,10 +1779,12 @@ void *Worker_Thread()
 		current_score=mount_pieces(F,P,tmp.player);
 
 		//print_field(F);
-	
 
-		alpha_beta(F, tmp.max_depth, tmp.player, &tmp.score);
-		//printf("A-B de %d,%d eh %f\n",n,c,tmp.score);
+		tmp.score=current_score;
+
+		// -1 -> other player
+		alpha_beta(F, tmp.max_depth, -1*tmp.player, &tmp.score);
+		//printf("A-B eh %f\n",tmp.score);
 		
 		sem_wait(&semaphore);
 
