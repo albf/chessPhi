@@ -1527,6 +1527,9 @@ int check_size_level1()
 
 /* sync */
 
+pthread_mutex_t mut_l1=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t sig_l1=PTHREAD_COND_INITIALIZER;
+
 pthread_mutex_t q_lock;
 sem_t semaphore;
 
@@ -1656,17 +1659,20 @@ void *Controller_Thread(void *args)
 
 	
 	
-	sem_wait(&semaphore);
+	//sem_wait(&semaphore);
 	
 	/* results join */
 
 	/* wait until slaves terminate */
 	while(start_level4==0)
 	{
-		sem_post(&semaphore);
-		sem_wait(&semaphore);
+		pthread_mutex_lock(&mut_l1);
+		pthread_cond_wait(&sig_l1,&mut_l1);
+		pthread_mutex_unlock(&mut_l1);
+		//sem_post(&semaphore);
+		//sem_wait(&semaphore);
 	} 
-	sem_post(&semaphore);
+	//sem_post(&semaphore);
 	
 
 	/* all slaves terminated, max is set, just use it */
@@ -1762,6 +1768,7 @@ void *Worker_Thread()
 		 * set the max in parallel, using index
 		 */
 
+		pthread_mutex_lock(&mut_l1);
 		if(score_minl2[index]>score_maxl1)
 		{
 			score_maxl1=score_minl2[index];
@@ -1771,6 +1778,8 @@ void *Worker_Thread()
 
 		test_l4();
 
+		pthread_cond_signal(&sig_l1);
+		pthread_mutex_unlock(&mut_l1);
 
 
 	}
