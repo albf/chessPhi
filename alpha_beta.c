@@ -1965,7 +1965,7 @@ void benchmark(int parallel) {
 // BENCHMARK 2: "Mate in 6" 
 // source: http://www.chess.com/forum/view/endgames/mate-in-6-masters-only-d
 
-    for(i=0; i<8; i++) { for(j=0; j<8; j++) { F[i][j] = 0; } }
+/*    for(i=0; i<8; i++) { for(j=0; j<8; j++) { F[i][j] = 0; } }
 
     player = -1;
     F[0][2] = -pawn;    F[3][2] = -pawn; 
@@ -1981,6 +1981,7 @@ void benchmark(int parallel) {
     gettimeofday(&end, NULL);
     timeval_subtract(&diff, &end, &begin);
     printf("Time Elapsed in Benchmark 2: %ld.%06ld\n", diff.tv_sec, diff.tv_usec);
+*/
 
 // BENCHMARK 3: Mate in 7 but modified to use only 4 moves.
 // Source : http://www.chess.com/forum/view/endgames/mate-in-7 - Modified by Madruguinha.
@@ -2049,7 +2050,7 @@ void benchmark(int parallel) {
 
 int main(int argc,char *argv[]) {
 
-    int parallel=1;
+    int parallel=0;
 
     int i, j;
     double score; 
