@@ -1,4 +1,4 @@
-CFLAGS = -O3 -Wall -Wextra -lpthread -lm
+CFLAGS = -O2 -Wall -Wextra -lpthread -lm
 
 all: alpha_beta
 

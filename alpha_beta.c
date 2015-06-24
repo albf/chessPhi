@@ -2050,7 +2050,7 @@ void benchmark(int parallel) {
 
 int main(int argc,char *argv[]) {
 
-    int parallel=0;
+    int parallel=1;
 
     int i, j;
     double score; 

@@ -1,5 +1,5 @@
 Serial - O3
-
+-O3 -Wall -Wextra -lpthread -lm
 CPU : Intel(R) Core(TM) i5-3570 CPU @ 3.40GHz
 
 B1 : 65.600464 
