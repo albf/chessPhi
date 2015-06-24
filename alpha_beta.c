@@ -1833,7 +1833,6 @@ void init_things()
 }
 
 
-#define TEST_PARALLEL
 
 // For benchmark propouses
 void checkmate_path(int F[8][8], int player, int parallel) {
@@ -1887,26 +1886,25 @@ void checkmate_path(int F[8][8], int player, int parallel) {
 
         printf(">> Score : %lf. \n", score);
 
-	#ifndef TEST_PARALLEL
-        if(score < 500) {
+        if(parallel==0 && score < 500) {
             free(best_move);
         }
-	#endif
 
     } while (score < 500);
 
     printf("Checkmate path found.\n");
 
-    #ifndef TEST_PARALLEL
+    if(parallel==0)
+    {
     printf("Mov : %d, %d -> %d %d ; \n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y); 
     print_field(F);
     do_move(F,best_move);
     print_field(F);
     free(best_move);
-    #endif
+    }
 }
 
-void benchmark() {
+void benchmark(int parallel) {
     struct timeval begin, end, diff;
     int F[8][8], i, j, player;
 
@@ -1924,11 +1922,7 @@ void benchmark() {
     gettimeofday(&begin, NULL);
     
 
-#ifdef TEST_PARALLEL
-    checkmate_path(F,player,1);
-#else
-    checkmate_path(F, player, 0);
-#endif
+    checkmate_path(F,player,parallel);
 
     gettimeofday(&end, NULL);
     timeval_subtract(&diff, &end, &begin);
@@ -2020,6 +2014,9 @@ void benchmark() {
 }
 
 int main(int argc,char *argv[]) {
+
+    int parallel=1;
+
     int i, j;
     double score; 
     int player = -1, max_depth = 3;
@@ -2031,7 +2028,7 @@ int main(int argc,char *argv[]) {
 
     if(argc!=(64+1))
     {
-        benchmark();
+        benchmark(parallel);
         return 0;
 
     /*for(i=0; i<8; i++) {
