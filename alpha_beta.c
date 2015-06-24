@@ -1526,6 +1526,9 @@ int check_size_level1()
 
 
 /* sync */
+pthread_mutex_t mut_l3=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t sig_l3=PTHREAD_COND_INITIALIZER;
+
 pthread_mutex_t mut_l2=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t sig_l2=PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mut_l1=PTHREAD_MUTEX_INITIALIZER;
@@ -1756,7 +1759,11 @@ void *Worker_Thread()
 		sem_wait(&semaphore);
 
 		itens_level2+=check_size_line_level2(index);
+
+		pthread_mutex_lock(&mut_l3);
 		set_test_level2(index);
+		pthread_cond_broadcast(&sig_l3);
+		pthread_mutex_unlock(&mut_l3);
 
 		sem_post(&semaphore);
 
@@ -1798,13 +1805,12 @@ void *Worker_Thread()
 
 	/* start level 2 */
 
-	sem_wait(&semaphore);
 	while(start_level2==0)
 	{
-		sem_post(&semaphore);
-		sem_wait(&semaphore);
+		pthread_mutex_lock(&mut_l3);
+		pthread_cond_wait(&sig_l3,&mut_l3);
+		pthread_mutex_unlock(&mut_l3);
 	}
-	sem_post(&semaphore);
 
 	sem_wait(&semaphore);
 	int n=get_line_level2();
