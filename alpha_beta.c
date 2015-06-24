@@ -2104,15 +2104,24 @@ int main(int argc,char *argv[]) {
     // Print Field for debug reasons.
     //print_field(F);
     //checkmate_path(F, player, 0);
-    
-    best_move = alpha_beta(F, max_depth, player, &score);
-    do_move(F,best_move);
-    printf("Mov : %2d, %2d -> %2d %2d ; Counter: %d ; Index: %d ; Score : %lf\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter, best_move->index, score);
 
+
+    if(parallel==0){
+        best_move = alpha_beta(F, max_depth, player, &score);
+        do_move(F,best_move);
+        printf("Mov : %2d, %2d -> %2d %2d ; Counter: %d ; Index: %d ; Score : %lf\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter, best_move->index, score);
+    }else{
+	parallel_chess(F,max_depth,player,&score);
+	do_move(F,&maxl1);
+        printf("Mov : %2d, %2d -> %2d %2d ; Counter: 0 ; Index: 0 ; Score : 0\n", maxl1.l_pos_x,maxl1.l_pos_y,maxl1.pos_x,maxl1.pos_y);
+    }
     // Print Field for python parser. 
     print_field(F);
     printf("Alpha Beta Finished\n");
-    free(best_move);
-    
+
+    if(parallel==0)
+    {
+        free(best_move);
+    }
     return 0;
 }
