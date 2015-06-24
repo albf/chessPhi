@@ -1933,11 +1933,7 @@ void checkmate_path(int F[8][8], int player, int parallel) {
         }
         else {
 
-        printf("parallel version here.\n");
 	parallel_chess(F,max_depth,player,&score);	
-
-	do_move(F,&maxl1);
-    	print_field(F);
 
 	printf("finished a parallel step\n");
         }
