@@ -50,7 +50,7 @@ A chamada dos módulos em C é feita através da chamada de um processo através
 
 \subsection{Serial}
 
-O algoritmo serial consiste basicamente de um backtracking dos movimentos possiveis, realizados sequencialmente, até que toda a computação acabe ou que se tenha atingido algum um limite de tempo/profundidade pré-estabelecido. Nota-se que já existem diversas classificações para determinar o valor de cada peça do jogo, sendo utilizada uma já existente, sendo a pontuação calculada da seguinte forma:
+O algoritmo serial consiste basicamente de um backtracking dos movimentos possiveis, realizados sequencialmente, até que toda a computação acabe ou que se tenha atingido algum um limite de tempo/profundidade pré-estabelecido. Nota-se que já existem diversas classificações para determinar o valor de cada peça do jogo, sendo utilizada uma já existente. A pontuação será calculada da seguinte forma:
 
 \begin{equation}
 Score = \sum_{Peças de A} val(peças) - \sum_{Peças de B} val(peças)
@@ -61,9 +61,7 @@ Score = \sum_{Peças de A} val(peças) - \sum_{Peças de B} val(peças)
 \includegraphics[scale=1]{../presentation/huoChess_2.jpg}
 \end{figure}
 
-O funcionamento do alfa-beta-pruning é .....
-O algoritmo foi projetado de modo a eliminar recursões e assim obter maior desempenho e ....
-O algoritmo é modular de modo a uma fácil implementação paralela...
+O funcionamento do alfa-beta-pruning permite a eliminação de algumas sub-árvores, melhorando o desempenho em relação ao Min-Max. A implementação proposta foi projetada de modo a eliminar recursões e alocação de memória, diminuindo a quantidade de memória utilizada e melhorando o desempenho. Estas características facilitaram a implementação paralela, sendo que a versão serial é usada pelas threads da versão paralela.
 
 \subsection{Paralela}
 
@@ -79,7 +77,7 @@ No segundo estado, as \textit{worker threads} abrem o segundo nível, e também 
 
 \section{Testes}
 
-Pode-se medir o speed up obtido com medidas para diferentes profundidades em ambas as soluções, sendo interessante também a profundidade média obtida para diferentes tempos fixados de execução, o que permitirá analisar a melhoria obtida devido a execução paralela.
+Para efetuar a comparação entre as duas implementações, foi feito um pequeno benchmark consistente de 5 jogos pré estabelecidos onde o programa busca pelo próximo movimento que garante a vitória do jogador (checkmate). O programa vai aumentando a profundidade de execução até que essa jogada seja encontrada, medindo o tempo de execução do início da busca até o final, onde a jogada é encontrada.
 
 \subsection{Benchmarks}
 
