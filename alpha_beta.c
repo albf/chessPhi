@@ -1,3 +1,11 @@
+/* ChessPhi - Parallel Chess Moviments Tips
+ * MO644/MC970 Programação Paralela (1s15)
+ * Prof. Guido - IC - UNICAMP
+ * Final Project
+ * Alexandre Brisighello - 101350
+ * Marcus Botacin - 103338
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

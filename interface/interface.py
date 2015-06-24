@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#disclaimer block
+#Disclaimer block
 
-# Marcus Botacin
-# Alexandre Brisighello 
+# Marcus Botacin - 103338
+# Alexandre Brisighello - 101350
 # Unicamp 2015 Guido
+# Final Project - ChessPhi Interface
 
 #import block
 
@@ -27,10 +28,13 @@ king=1
 #interface class block
 
 class ChessInterface(QtGui.QWidget):
-    grid=[]
-    oldx=-1
+    grid=[] # img grid
+    oldx=-1 # old mouse positions (just for initialization)
     oldy=-1
+    # init board = zeros
     board = np.zeros(shape=(8,8))
+
+    #img name -> return figure path for given position
     def img_name(self,i,j,piece):
         if(i%2==0 and j%2==0):
             if(piece==0):
@@ -119,11 +123,9 @@ class ChessInterface(QtGui.QWidget):
                 if(piece==-1):
                     return "images/king_white_on_black.png"
 
+    # click on serial move
     def on_click2(self):
-        #for i in xrange(0,8):
-        #    for j in xrange(0,8):
-        #        print(self.board[i][j]),
-        #    print("")
+        #call alpha beta
         command=["../alpha_beta"]
         for i in xrange(0,8):
             for j in xrange(7,-1,-1):
@@ -132,19 +134,20 @@ class ChessInterface(QtGui.QWidget):
         proc.stdin.write('q\n')
         out, err = proc.communicate()
         proc.wait()
+        #search for last words
         search_for="Alpha Beta Finished"
-        #search_for="Changing player"
         index=out.find(search_for)
         l=[]
+        # get position by position
         for j in xrange(0,8):
             for i in xrange(0,8):
-                #print(out[index-5:index-2]),
                 l.append(out[index-5:index-2])
                 index=index-4
-            #print("")
             index=index-1
+        #reverse order
         for i in xrange(0,8):
             for j in xrange(0,8):
+                #update board, update grid view
                 self.board[i][j]=l[63-(8*i)-j]
                 label = QLabel()
                 pixmap=QPixmap(self.img_name(i,j,self.board[i][j]))
@@ -152,13 +155,9 @@ class ChessInterface(QtGui.QWidget):
                 label.show()
                 self.grid.addWidget(label,i,j)
 
-                #print(self.board[i][j]),
-            #print("")
-
-
-
-
+    # serial tip click
     def on_click(self):
+        # call alpha beta
         command=["../alpha_beta"]
         for i in xrange(0,8):
             for j in xrange(7,-1,-1):
@@ -167,17 +166,19 @@ class ChessInterface(QtGui.QWidget):
         proc.stdin.write('q\n')
         out, err = proc.communicate()
         proc.wait()
+        # Search for moviment string
         search_for="Mov : "
         index=out.find(search_for)
+        # parse stdout long string
         xbase=int(out[index+7:index+8])
         ybase=int(out[index+11:index+12])
         xdest=int(out[index+17:index+18])
         ydest=int(out[index+20:index+21])
-        #print(xbase,ybase)
-        #print(xdest,ydest)
+        # show widget information
         w = QWidget()
         QMessageBox.information(w,"Action","Move ("+str(xbase)+","+str(ybase)+") -> ("+str(xdest)+","+str(ydest)+")","Ok")
 
+    #init board -> always the same classical positioning
     def initBoard(self):
         board=self.board
         board[0][0]=7
@@ -200,6 +201,9 @@ class ChessInterface(QtGui.QWidget):
             board[1][i]=9
             board[6][i]=-9
         return board
+
+    # get grid position by estimating mouse click
+    # faster than a handler by widget
     def mousePressEvent(self, QMouseEvent):
 
         posy=QMouseEvent.pos().x()
@@ -211,7 +215,13 @@ class ChessInterface(QtGui.QWidget):
             return
 
         w = QWidget()
+
+        # On mouse click, what to do ?
         res=QMessageBox.question(w,"Action","Move or Remove","Move","Remove","Cancel")
+
+        # Move
+        #first click, store position
+        #second click, put on new position and erase old position
         if(res==0):
 
             if(self.oldx!=-1 and self.oldy!=-1):
@@ -236,6 +246,7 @@ class ChessInterface(QtGui.QWidget):
                 self.oldx=btnx
                 self.oldy=btny
         
+        # remove, just clear
         if(res==1):
             self.board[btnx][btny]=0
             label = QLabel()
@@ -246,10 +257,12 @@ class ChessInterface(QtGui.QWidget):
             self.oldy=-1
             self.oldx=-1
 
+        #cancel, do nothing
         if(res==2):
             self.oldy=-1
             self.oldx=-1
     
+    # init class and GUI
     def __init__(self):
         super(ChessInterface, self).__init__()
         self.initUI()                               
@@ -259,6 +272,8 @@ class ChessInterface(QtGui.QWidget):
         self.grid=QtGui.QGridLayout()
         self.setLayout(self.grid)
 
+        #init board
+        #for each i,j : get image name, set widget(label)
         for i in xrange(0,8):
             for j in xrange(0,8):
                 label = QLabel()
@@ -267,6 +282,7 @@ class ChessInterface(QtGui.QWidget):
                 label.show()
                 self.grid.addWidget(label,i,j)
     
+        #buttons and event handlers
 
         w = QWidget()
         btn=QPushButton('Quit!',w)
