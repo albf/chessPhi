@@ -76,7 +76,8 @@ int apply_move(int F[8][8], int P[num_pieces][num_col], struct moviment * mov);
 void do_move(int F[8][8], struct moviment * mov);
 void print_field(int F[8][8]);
 void print_player(int P[num_pieces][num_col]);
-
+struct moviment * parallel_chess(int F[8][8],int max_depth,int player,double *score);
+void *Worker_Thread();
 
 // Init the moviment queue.
 void init_queue(struct queue * Q, int size) {
@@ -1257,6 +1258,7 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, double * sc
     best_move = (struct moviment *) malloc(sizeof(struct moviment));
     best_move->refresh = 0;
 
+    //printf("alpha_beta call: %d\n", max_depth);
     //print_field(F);
     //print_player(P);
     
@@ -1374,524 +1376,270 @@ struct moviment * alpha_beta(int F[8][8], int max_depth, int player, double * sc
 }
 
 
-/* Thread arguments passing */
-typedef struct args
-{
-	int (*F)[8];
-	int max_depth;
-	int player;
-	double *score;
-}Targs;
-
-
-/* Queue definition */
-
-typedef struct sQ
-{
-	int **F; /* current board */
-	int player; /* last player */
-	double score; /* current score */
-	struct moviment next; /* last moviment */
-	struct moviment m1,m2; /* first and second move remembering */
-	int max_depth; /* game depth */
-}Queue;
-
-/* Min-Max algorithm */
-
-/* min level 2 */
-int score_minl2[64];
-struct moviment minl2[64];
-
-/* max level 1 */
-int score_maxl1=-1*INT_MAX;
-struct moviment maxl1;
-
-
-/* global queue declaration */
-
-int itens_level1;
-int itens_level2;
-int score_level1[64];
-Queue qlevel1[64]; /* first level queue */
-Queue qlevel2[64][64]; /* a queue of queues -> column is level 1 moviments, line is level 2 moviments */
-int n_queue1=0;
-int n_n_queue2[64];
-int count_l1=0;
-
-/* level control */
-
-int start_level1=0;
-int start_level2=0;
-int start_level3=0;
-int start_level4=0;
-
-/* test if level 4 was reached */
-void test_l4()
-{
-	/* if all threads level before terminated */
-	if(count_l1==itens_level1)
-	{
-	    start_level4=1;
-	}
-}
-
-/* which threads terminated */
-int flags[64];
-
-/* check if other level was completed */
-void set_test_level2(int index)
-{
-	int i;
-	/* set index as terminated */
-	flags[index]=1;
-
-	for(i=0;i<itens_level1;i++)
-	{
-		/* if at least one is remaining, wait */
-		if(flags[i]==0)
-		{
-			return ;
-		}
-	}
-	start_level2=1;
-}
-
-/* teste level 3 */
-void test_level3()
-{
-	/* all completed */
-	if(itens_level2==0)
-	{
-		start_level3=1;
-	}
-}
-
-/* Queue Operations */
-
-/* insert item Q, on queue qlevel2, at entry line */
-void insert_level2(Queue Q,int line)
-{
-	qlevel2[line][n_n_queue2[line]]=Q;
-	n_n_queue2[line]++;
-}
-
-/* remove last item */
-Queue remove_level2(int line)
-{
-	Queue tmp;
-	tmp=qlevel2[line][n_n_queue2[line]-1];
-	n_n_queue2[line]--;
-	return tmp;
-}
-
-/* Queue size by line (father) */
-int check_size_line_level2(int line)
-{
-	return n_n_queue2[line];
-}
-
-/* get a non-empty sub-queue */
-int get_line_level2()
-{
-	int i;
-	for(i=0;i<itens_level1;i++)
-	{
-		if(n_n_queue2[i]>0)
-			return i;
-	}
-	return -1;
-}
-
-/* insert Q on level1 queue */
-void insert_level1(Queue Q)
-{
-	qlevel1[n_queue1]=Q;
-	n_queue1++;
-}
-
-/* remove tail from level 1 */
-Queue remove_level1()
-{
-	Queue tmp;
-	tmp=qlevel1[n_queue1-1];
-	n_queue1--;
-	return tmp;
-}
-
-/* level 1 queue size */
-int check_size_level1()
-{
-	return n_queue1;
-}
-
-
-/* sync */
-
-pthread_mutex_t q_lock;
-sem_t semaphore;
-
-/* Matrix operations 
- * Rquired to get a board for each opened moviment
- */
-
-
-/* allocate matrix */
-
-int **allocate_matrix()
-{
-	int i;
-	int **M;
-	M=(int**)malloc(sizeof(int*)*8);
-	for(i=0;i<8;i++)
-	{
-		M[i]=(int*)malloc(sizeof(int)*8);
-	}
-	return M;
-}
+// Parallel Code below.
 
 /* copy matrix - type 1 */
 
-void copy_matrix2(int (*D)[8],int **S)
+void copy_matrix(int D[8][8],int S[8][8])
 {
-	int i,j;
-	for(i=0;i<8;i++)
-	{
-		for(j=0;j<8;j++)
-		{
-			D[i][j]=S[i][j];
-		}
-	}
+    int i,j;
+    for(i=0;i<8;i++)
+    {
+        for(j=0;j<8;j++)
+        {
+            D[i][j]=S[i][j];
+        }
+    }
 }
 
-/* copy matrix - type 2 */
+struct f_mov {
+    int f_index;
+    struct moviment mov;
+    struct f_mov * next;
+};
 
-void copy_matrix(int **D,int S[8][8])
-{
-	int i,j;
-	for(i=0;i<8;i++)
-	{
-		for(j=0;j<8;j++)
-		{
-			D[i][j]=S[i][j];
-		}
-	}
+struct exec_entry {
+    int F[8][8];
+    int max_depth;
+    int player;
+    int f_index;
+    int s_index;
+    struct exec_entry * next;
+};
+
+struct res_entry {
+    int f_index;
+    int s_index;
+    double score;
+    struct res_entry * next;  
+};
+
+struct exec_queue{
+    struct exec_entry * entry;
+    pthread_mutex_t q_lock;
+
+    struct res_entry * result;
+    pthread_mutex_t r_lock;
+
+    struct f_mov * move_list;
+};
+
+void insert_f_mov(struct exec_queue * Q, int f_index,  struct moviment * mov) {
+    struct f_mov * n_mov = (struct f_mov *) malloc (sizeof(struct f_mov));
+
+    n_mov->f_index = f_index;
+    n_mov->mov = *mov;
+    n_mov->next = Q->move_list;
+
+    Q->move_list = n_mov;
 }
 
-/* Master Thread */
+void init_exec_queue(struct exec_queue * Q) {
+    pthread_mutex_init(&Q->q_lock, NULL);
+    Q->entry = NULL; 
 
-void *Controller_Thread(void *args)
+    pthread_mutex_init(&Q->r_lock, NULL);
+    Q->result = NULL;
+    Q->move_list = NULL;
+}
+
+void free_exec_queue(struct exec_queue * Q) {
+    pthread_mutex_destroy(&Q->q_lock);
+    pthread_mutex_destroy(&Q->r_lock);
+}
+
+void push_exec(struct exec_queue * Q, int F[8][8], int max_depth, int player, int f_index, int s_index) {
+    struct exec_entry * new_e = (struct exec_entry *) malloc(sizeof(struct exec_entry)); 
+
+    pthread_mutex_lock(&Q->q_lock);
+
+    copy_matrix(new_e->F, F);
+    new_e->max_depth = max_depth;
+    new_e->player = player;
+    new_e->next = Q->entry;
+    new_e->f_index = f_index;
+    new_e->s_index = s_index;
+
+    Q->entry = new_e;
+
+    pthread_mutex_unlock(&Q->q_lock);
+}
+
+// Pop latest appended mov.
+struct exec_entry * pop_exec(struct exec_queue * Q) {
+    struct exec_entry * pooped = NULL;
+
+    pthread_mutex_lock(&Q->q_lock);
+    if(Q->entry == NULL) {
+        printf("Pop from empty list\n");
+    }
+    else {
+        pooped = Q->entry;
+        Q->entry = Q->entry->next;
+    }
+    pthread_mutex_unlock(&Q->q_lock);
+    return pooped; 
+}
+
+void push_res(struct exec_queue * Q, int f_index, int s_index, double score) {
+    struct res_entry * r_entry= (struct res_entry *) malloc(sizeof(struct res_entry));
+    
+    pthread_mutex_lock(&Q->r_lock);
+    r_entry->f_index = f_index;
+    r_entry->s_index = s_index;
+    r_entry->score = score;
+    r_entry->next = Q->result;
+
+    Q->result = r_entry;
+
+    pthread_mutex_unlock(&Q->r_lock);
+}
+
+/* Parallel sync */
+sem_t semaphore;
+struct exec_queue exec_q;
+int num_res;
+
+/* API similar to alpha_beta to start the parallel computation */
+
+struct moviment * parallel_chess(int F[8][8],int max_depth,int player,double *score)
 {
-	int **F;
-	int P[num_pieces][num_col];
-	int depth=0;
-	Targs myargs=*((Targs*)args);
-	struct moviment next;
+    int i,threads=4;
+    pthread_t* worker_thread_handles;
+    int P[num_pieces][num_col];
+    double current_score;
+    int n_root, n_son;
+    struct moviment next_root, next_son;
+    num_res = 0;
+
+    printf("Master thread. Depth:%d\n", max_depth);
+
+    // Initialize worker threads.
+    worker_thread_handles = malloc(threads*sizeof(pthread_t));
+    sem_init(&semaphore,0,0);
+    init_exec_queue(&exec_q);
 
 
-	int *mov_counter;
-	double current_score;
-	mov_counter = (int *) malloc (sizeof(int)*(myargs.max_depth+1));
-
-	/* Current board */
-
-	current_score = mount_pieces(myargs.F, P, myargs.player);     // Mount pieces table.
+    for (i = 0; i < threads; i++) {
+        pthread_create(&worker_thread_handles[i], NULL, Worker_Thread,NULL);
+    }
 
 
-	mov_counter[depth]=0;
+    current_score = mount_pieces(F, P, player);     // Mount pieces table.
+    n_root = 0;
 
+    /* Open ROOT*/
+    while(1) {  
+            find_nth_move(F, P, n_root, &next_root, player, max_depth);  // Find next move.
+            n_root++;
+            if(next_root.refresh < 0) {
+                break;
+            }
 
-	/* Spread tree */
+            insert_f_mov(&exec_q, n_root, &next_root);
+            current_score += apply_move(F, P, &next_root);
+            
+            n_son = 0;
+            while(1) {
+                
+                find_nth_move(F, P, n_son, &next_son, (player*(-1)), (max_depth-1));  // Find next move.
+                n_son++;  
 
-	sem_wait(&semaphore);
+                if(next_son.refresh < 0) {
+                    break;
+                }
 
-	/* Open each possible moviment */
-	do{
-			find_nth_move(myargs.F, P, mov_counter[depth], &next, myargs.player, depth);  // Find next move.
-	
+                current_score += apply_move(F, P, &next_son);
+                
+                // Add in queue
+                //printf("ADDING QUEUE : %d\n", max_depth-2);
+                push_exec(&exec_q, F, (max_depth-2), player, n_root, n_son); 
+                sem_post(&semaphore);
+                //
+            
+                current_score += undo_move(F,P,&next_son,(max_depth-1));
 
-			/*allocate */
-			F = allocate_matrix();
+            }
 
-			Queue tmp;
-			tmp.F=F;	
-			tmp.player=myargs.player;
+            current_score += undo_move(F,P,&next_root,(max_depth+1));
 
-			/* do the move */
+    }
 
-			tmp.score=current_score+apply_move(myargs.F, P, &next);
-			tmp.next=next;
-			tmp.m1=next;
-			tmp.max_depth=myargs.max_depth;
-	
+    // Exit everyone
+    for(i=0; i<threads; i++) {
+        sem_post(&semaphore);
+    }
 
-			/* insert moviment on queue */
+    // Join threads.
+    for (i = 0; i < threads; i++) {
+        pthread_join(worker_thread_handles[i], NULL);
+    }
 
-			insert_level1(tmp);
-			
+    struct res_entry * res; 
+    double min_score;
+    double max_score;
 
-			/* copy the board */
+    //printf("num_res:%d\n",num_res);
+    n_root--;
+    //printf("n_root:%d\n",n_root);
 
-			/* copy F */
-			copy_matrix(F,myargs.F);
+    max_score = -999999;
+    for(i=1; i<=n_root; i++) {
+        res = exec_q.result;
+        min_score = 999999;
+        while(res!=NULL) {
+            if((res->f_index == i)&&(res->score < min_score)) {
+                min_score = res->score; 
+            } 
+            res = res->next;
+        }
+        if(min_score > max_score) {
+            max_score = min_score;
+        }
+    }
 
-		
-			/* undo move */
-			undo_move(myargs.F, P, &next, depth);
+    *score = max_score;
 
+    free(worker_thread_handles);
 
-			/* update counter */
-			mov_counter[depth]++;
-	}while(next.refresh > 0);
+    // Free semaphores
+    sem_destroy(&semaphore);
 
-
-	/* remove the last -> no refresh */
-	remove_level1();
-
-
-	itens_level1=check_size_level1();
-
-	start_level1=1;
-
-	sem_post(&semaphore);
-
-	
-	
-	sem_wait(&semaphore);
-	
-	/* results join */
-
-	/* wait until slaves terminate */
-	while(start_level4==0)
-	{
-		sem_post(&semaphore);
-		sem_wait(&semaphore);
-	} 
-	sem_post(&semaphore);
-	
-
-	/* all slaves terminated, max is set, just use it */
-
-	*myargs.score=score_maxl1;
-
-	free(mov_counter);
-	return NULL;
+    return NULL;
 }
 
 /* Slave Thread */
 
-void *Worker_Thread()
-{
-	int P[num_pieces][num_col];
-	struct moviment next;
-	int F[8][8];
-	int **F2;
-	int mov_counter=0;
-	int current_score;
-	int index;
-	Queue tmp;
-	/* wait for level 1*/
-	sem_wait(&semaphore);
-	while(start_level1==0){
-		sem_post(&semaphore);
-		sem_wait(&semaphore);
-	}
-	
-	/* on level 1, read until finish data */
-	while(check_size_level1()>0)
-	{
-		/* who am i ? */
-		index=check_size_level1()-1;
-		/* remove from queue */
-		tmp=remove_level1();
-		sem_post(&semaphore);
+void *Worker_Thread() {
+    struct exec_entry * exec;
+    double score;
 
+    printf("Madruguinha Worker.\n");
 
-		copy_matrix2(F,tmp.F);
+    sem_wait(&semaphore);
+    while(1) {
+        exec = pop_exec(&exec_q);
+        if(exec == NULL) {
+            break;
+        }
 
+        //printf("Exec found. Exec->max_depth: %d\n", exec->max_depth);
 
-		/* current board */
+        alpha_beta(exec->F, exec->max_depth, exec->player, &score);
+        push_res(&exec_q, exec->f_index, exec->s_index, score);
+        num_res++;
 
-		current_score=mount_pieces(F,P,tmp.player*-1);
+        sem_wait(&semaphore);
+    }
 
-		/* for each moviment */
-		do{
-			find_nth_move(F, P, mov_counter, &next, tmp.player*-1, 0);  // Find next move.
-			/* allocate, create board, insert queue, undo_move */
-			F2=allocate_matrix();
-			Queue tmp2;
-			tmp2.F=F2;	
-			tmp2.player=tmp.player*-1;
-			tmp2.score=current_score+apply_move(F, P, &next);
-
-			tmp2.next=next;
-			tmp2.m1=tmp.m1;
-			tmp2.m2=next;
-			tmp2.max_depth=tmp.max_depth;
-
-			insert_level2(tmp2,index);
-
-			/* copy F */
-			copy_matrix(F2,F);
-
-			/* undo move */
-			undo_move(F, P, &next, 0);
-
-
-
-			mov_counter++;
-		}while(next.refresh > 0);
-
-		free(tmp.F);
-		/* remove the last -> no refresh */
-		remove_level2(index);
-
-		sem_wait(&semaphore);
-
-		itens_level2+=check_size_line_level2(index);
-		set_test_level2(index);
-
-		/* wait until reach the next level */
-		while(start_level3==0)
-		{
-			sem_post(&semaphore);
-			sem_wait(&semaphore);
-		}
-
-
-		/* this step we choose the max (min-max algorithm
-		 * set the max in parallel, using index
-		 */
-
-		if(score_minl2[index]>score_maxl1)
-		{
-			score_maxl1=score_minl2[index];
-			maxl1=minl2[index];
-		}
-		count_l1++;
-
-		test_l4();
-
-
-
-	}
-	/* finish level 1 */
-
-	sem_post(&semaphore);
-
-	/* start level 2 */
-
-	sem_wait(&semaphore);
-	while(start_level2==0)
-	{
-		sem_post(&semaphore);
-		sem_wait(&semaphore);
-	}
-	sem_post(&semaphore);
-
-	sem_wait(&semaphore);
-	int n=get_line_level2();
-	while(n!=-1)
-	{
-		/* remove from the queue */
-		Queue tmp=remove_level2(n);
-		sem_post(&semaphore);
-
-		copy_matrix2(F,tmp.F);
-		/* current board */
-		current_score=mount_pieces(F,P,tmp.player);
-
-		tmp.score=current_score;
-
-		/* call alpha beta this time */
-
-		alpha_beta(F, tmp.max_depth, -1*tmp.player, &tmp.score);
-		
-		sem_wait(&semaphore);
-
-		/* this step of min-max algorithm we choose the min
-		 * set min in parallel using thread_id (n)
-		 */
-
-		if(tmp.score<score_minl2[n])
-		{
-			score_minl2[n]=tmp.score;
-			minl2[n]=tmp.m1;
-		}
-		
-		itens_level2--;
-
-		free(tmp.F);
-		n=get_line_level2();
-	}
-	sem_post(&semaphore);
-
-
-	test_level3();
-
-	/* finishing, nothing more to do - will join */
-
-	return NULL;
+    return NULL;
 }
 
-/* set all global vars
- * reset used values
- */
-
-void init_things()
-{
-	int i;
-	/* mudar para init de todas as vars */
-	for(i=0;i<64;i++)
-	{
-		score_minl2[i]=INT_MAX;
-		score_level1[i]=0;
-		n_n_queue2[i]=0;
-		flags[i]=0;
-	}
-
-	score_maxl1=-1*INT_MAX;
-	itens_level1=0;
-	itens_level2=0;
-	n_queue1=0;
-	start_level1=0;
-	start_level2=0;
-	start_level3=0;
-	count_l1=0;
-	start_level4=0;
 
 
-}
+// End of parallel code
 
-/* API similar to alpha_beta to start the parallel computation */
 
-void parallel_chess(int (*F)[8],int max_depth,int player,double *score)
-{
-	int i,threads=60;
-	pthread_t* worker_thread_handles;
-	pthread_t main_thread_handle;
-
-	init_things();		
-	worker_thread_handles = malloc(threads*sizeof(pthread_t));
-	pthread_mutex_init(&q_lock,NULL);
-        sem_init(&semaphore,0,1);
-
-	Targs args;
-	args.F=F;
-	args.max_depth=max_depth-2;
-	args.player=player;
-	args.score=score;
-	pthread_create(&main_thread_handle,NULL,Controller_Thread,(void*)&args);
-	for (i = 0; i < threads; i++)
-		pthread_create(&worker_thread_handles[i], NULL, Worker_Thread,NULL);
-	for (i = 0; i < threads; i++)
-		pthread_join(worker_thread_handles[i], NULL);
-	pthread_join(main_thread_handle,NULL);
-
-	free(worker_thread_handles);
-
-	pthread_mutex_destroy(&q_lock);
-	sem_destroy(&semaphore);
-}
 
 
 // For benchmark propouses
@@ -1910,12 +1658,12 @@ void checkmate_path(int F[8][8], int player, int parallel) {
         else {
 
         printf("parallel version here.\n");
-	parallel_chess(F,max_depth,player,&score);	
+    parallel_chess(F,max_depth,player,&score);  
 
-	do_move(F,&maxl1);
-    	print_field(F);
+    //do_move(F,&maxl1);
+        //print_field(F);
 
-	printf("finished a parallel step\n");
+    printf("finished a parallel step\n");
         }
 
         printf(">> Score : %lf. \n", score);
@@ -2116,9 +1864,9 @@ int main(int argc,char *argv[]) {
                 F[i][j] = atoi(argv[((8*i)+j)+1]);
             }
         }
-	player=atoi(argv[65]);
-	max_depth=atoi(argv[66]);
-	parallel=atoi(argv[67]);
+    player=atoi(argv[65]);
+    max_depth=atoi(argv[66]);
+    parallel=atoi(argv[67]);
     }
 
     // Print Field for debug reasons.
@@ -2129,11 +1877,11 @@ int main(int argc,char *argv[]) {
     if(parallel==0){
         best_move = alpha_beta(F, max_depth, player, &score);
         do_move(F,best_move);
-        printf("Mov : %2d, %2d -> %2d %2d ; Counter: %d ; Index: %d ; Score : %lf\n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter, best_move->index, score);
+        printf("Mov : %2d, %2d -> %2d %2d ; Counter: %d ; Index: %d \n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter, best_move->index);
     }else{
-	parallel_chess(F,max_depth,player,&score);
-	do_move(F,&maxl1);
-        printf("Mov : %2d, %2d -> %2d %2d ; Counter: 0 ; Index: 0 ; Score : 0\n", maxl1.l_pos_x,maxl1.l_pos_y,maxl1.pos_x,maxl1.pos_y);
+    best_move = parallel_chess(F,max_depth,player,&score);
+    do_move(F,best_move);
+        printf("Mov : %2d, %2d -> %2d %2d ; Counter: %d ; Index: %d \n", best_move->l_pos_x, best_move->l_pos_y, best_move->pos_x, best_move->pos_y, best_move->d_counter, best_move->index);
     }
     // Print Field for python parser. 
     print_field(F);
