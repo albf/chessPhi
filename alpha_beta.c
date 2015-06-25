@@ -1425,6 +1425,7 @@ struct moviment * parallel_chess(int F[8][8],int max_depth,int player,double *sc
 	double current_score;
 	int n_root, n_son;
 	struct moviment next_root, next_son;
+	struct moviment * best_move = (struct moviment *) malloc (sizeof(struct moviment));
 	num_res = 0;
 
 	// Initialize worker threads.
@@ -1465,6 +1466,7 @@ struct moviment * parallel_chess(int F[8][8],int max_depth,int player,double *sc
 			current_score += apply_move(F, P, &next_son);
 
 			// Add in queue
+			//printf("Entered in queue\n");
 			push_exec(&exec_q, F, (max_depth-2), player, n_root, n_son); 
 			sem_post(&semaphore);
 
@@ -1485,10 +1487,14 @@ struct moviment * parallel_chess(int F[8][8],int max_depth,int player,double *sc
 	for (i = 0; i < threads; i++) {
 		pthread_join(worker_thread_handles[i], NULL);
 	}
+	//printf("Threads joined\n");
 
 	struct res_entry * res; 
 	double min_score;
 	double max_score;
+	int f_index=-1;
+	int c_index=-1;
+	struct f_mov * loop;
 
 	n_root--;
 
@@ -1499,22 +1505,41 @@ struct moviment * parallel_chess(int F[8][8],int max_depth,int player,double *sc
 		while(res!=NULL) {
 			if((res->f_index == i)&&(res->score < min_score)) {
 				min_score = res->score; 
+				c_index = res->f_index;
 			} 
 			res = res->next;
 		}
 		if(min_score > max_score) {
 			max_score = min_score;
+			f_index = c_index;
 		}
 	}
 
 	*score = max_score;
+
+	loop = exec_q.move_list;
+
+	printf("Finding f_index:%d, score :%f\n", f_index, *score); 	
+
+	while((loop!=NULL) && (loop->f_index != f_index)) {
+		loop = loop->next;
+	}
+
+	if((loop!=NULL) && (loop->f_index == f_index)) {
+		*best_move = loop->mov;	
+	}
+	else {
+		printf("Move not found at loop->mov\n");
+		free(best_move);
+		best_move = NULL;
+	}
 
 	free(worker_thread_handles);
 
 	// Free semaphores
 	sem_destroy(&semaphore);
 
-	return NULL;
+	return best_move;
 }
 
 /* Slave Thread */
@@ -1522,15 +1547,18 @@ struct moviment * parallel_chess(int F[8][8],int max_depth,int player,double *sc
 void *Worker_Thread() {
 	struct exec_entry * exec;
 	double score;
+	//printf("Madruguinha Thread\n");
 
 	sem_wait(&semaphore);
 	while(1) {
+		//printf("out of sem\n");
 		exec = pop_exec(&exec_q);
 		if(exec == NULL) {
 			break;
 		}
 
 		alpha_beta(exec->F, exec->max_depth, exec->player, &score);
+		//printf("Pushing res\n");
 		push_res(&exec_q, exec->f_index, exec->s_index, score);
 		num_res++;
 
