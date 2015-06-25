@@ -93,18 +93,21 @@ Selecionamos 4 casos (posicionamento de peças no tabuleiro) equivalentes a joga
 	\begin{tabular}{|l|l|l|l|l|}
 		\hline
 		Algorítmo            & Benchmark 1 & Benchmark 2 & Benchmark 3 & Benchmark 4 \\ \hline
-		Min-Max Serial       & a           & a           & a           & a           \\ \hline
-		Alpha Beta Serial    & a           & a           & a           & a           \\ \hline
-		Alpha Beta O2 Serial & a           & a           & a           & a           \\ \hline
-		Alpha Beta O3 Serial & a           & a           & a           & a           \\ \hline
-		Paralelo 4 Threads   & a           & a           & a           & a           \\ \hline
-		Paralelo 8 Threads   & a           & a           & a           & a           \\ \hline
-		Xeon Phi             & a           & a           & a           & a           \\ \hline
+		Min-Max Serial       & 30+min           & \infty           & \infty           & \infty           \\ \hline
+		Alpha Beta Serial    & 552          & 363           & 139           & 2130           \\ \hline
+		Alpha Beta O2 Serial & 187           & 133           & 52           & 791           \\ \hline
+		Alpha Beta O3 Serial & 178           & 125           & 49           & 745           \\ \hline
+		Paralelo 4 Threads   & 121           & 124           & 51           & 740           \\ \hline
+		Paralelo 8 Threads   & 92           & 122           & 54           & 785           \\ \hline
+		Xeon Phi             & 445           & \infty          & \infty           & \infty           \\ \hline
 	\end{tabular}
 \end{table}
 
-AlphaBetaxMinMAx~\cite{chess2}
-alpha beta hard~\cite{chess1}
+Como se pode ver, o algoritmo \textit{Min-Max} tradicional é impraticável, sendo muito efetiva a variação \textit{alpha-beta pruning}. Também como sabido, as opções de otimização do compilador são significativas. O problema a ser paralelizado se mostrou fracamente escalável, obtendo \textit{speedup} nos níveis mais baixos e resultado dominado pelo algoritmo serial nos mais altos. Como esperado, a política de \textit{pruning}, tal qual implementado, consiste num problema difícil~\cite{chess1}, estando os resultados dentro do esperado, comparado com os mostrados em~\cite{chess2}.
+
+Para a aplicação na predição de peças em \textit{game time}, verifica - se que, se limitada a profundidade de busca ao conjunto das probabilidades aos quais o tempo serial ainda não é dominante, a versão paralelizada obtém o mesmo resultado em cerca de metade do tempo, ou ainda, pode avançar um nível a mais no mesmo intervalo.
+
+Em relação a Xeon Phi, seus resultados mostraram - se incompatíveis com o esperado, sendo o motivo determinado pelo baixo \textit{clock} da mesma quando o algoritmo serial domina o tempo de execução.
 
 %\bibliographystyle{IEEEtran}  
 \bibliographystyle{alpha}

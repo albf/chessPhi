@@ -66,15 +66,15 @@
 %\subsection{ChessPhi}
 
 \begin{frame}
-  \frametitle{Introdução}
+	\frametitle{Introdução}
 
-\begin{itemize}
-\item Jogo de Xadrez
-\item Xeon Phi
-\item \textit{Alpha Beta Pruning}
-\item \textit{Bag of Tasks}
-\item \textit{Benchmarks}
-\end{itemize}
+	\begin{itemize}
+		\item Jogo de Xadrez
+		\item Xeon Phi
+		\item \textit{Alpha Beta Pruning}
+		\item \textit{Bag of Tasks}
+		\item \textit{Benchmarks}
+	\end{itemize}
 \end{frame}
 
 %
@@ -100,17 +100,17 @@
 %  \end{frame}
 
 \begin{frame}
-  \frametitle{\textit{Alpha-Beta Pruning}}
-  \begin{figure}[!hpbt]
-	  \centering
-	  \begin{minipage}{0.8\textwidth}
-		    \centering
-		      \includegraphics[width=.8\linewidth]{huoChess_2.jpg}
-		        \caption{Exemplo}{Alfa-Beta}
-			  \label{fig:1}
-		  \end{minipage}
-	  \end{figure}
-  \end{frame}
+	\frametitle{\textit{Alpha-Beta Pruning}}
+	\begin{figure}[!hpbt]
+		\centering
+		\begin{minipage}{0.8\textwidth}
+			\centering
+			\includegraphics[width=.8\linewidth]{huoChess_2.jpg}
+			\caption{Exemplo}{Alfa-Beta}
+			\label{fig:1}
+		\end{minipage}
+	\end{figure}
+\end{frame}
 
 
 \section{Resultados}
@@ -118,6 +118,23 @@
 
 \begin{frame}
 	\frametitle{\textit{Benchmarks}}
+	\begin{table}[h]
+		\label{tab1}
+		\centering
+		\caption{Resultados (Tempo em segundos)}
+		\label{my-label}
+		\begin{tabular}{|l|l|l|l|l|}
+			\hline
+			Algorítmo            & Set 1 & Set 2 & Set 3 & Set 4 \\ \hline
+			Min-Max(Ser)       & 30+min           & \infty           & \infty           & \infty           \\ \hline
+			A.Beta (Ser)    & 552          & 363           & 139           & 2130           \\ \hline
+			A.Beta (O2-Ser) & 187           & 133           & 52           & 791           \\ \hline
+			A.Beta (O3-Ser) & 178           & 125           & 49           & 745           \\ \hline
+			4 Threads(Par)   & 121           & 124           & 51           & 740           \\ \hline
+			8 Threads(Par)  & 92           & 122           & 54           & 785           \\ \hline
+			Xeon Phi             & 445           & \infty          & \infty           & \infty           \\ \hline
+		\end{tabular}
+	\end{table}
 \end{frame}
 
 \end{document}
