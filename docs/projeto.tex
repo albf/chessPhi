@@ -58,10 +58,12 @@ Score = \sum_{Peças de A} val(peças) - \sum_{Peças de B} val(peças)
 
 \begin{figure}[H]
 \centering
+\label{fig1}
+\caption{\textit{Alpha Beta Pruning}}
 \includegraphics[scale=1]{../presentation/huoChess_2.jpg}
 \end{figure}
 
-O funcionamento do alfa-beta-pruning permite a eliminação de algumas sub-árvores, melhorando o desempenho em relação ao Min-Max. A implementação proposta foi projetada de modo a eliminar recursões e alocação de memória, diminuindo a quantidade de memória utilizada e melhorando o desempenho. Estas características facilitaram a implementação paralela, sendo que a versão serial é usada pelas threads da versão paralela.
+O funcionamento do alfa-beta-pruning (como mostrado na figura~\ref{fig1})  permite a eliminação de algumas sub-árvores, melhorando o desempenho em relação ao Min-Max. A implementação proposta foi projetada de modo a eliminar recursões e alocação de memória, diminuindo a quantidade de memória utilizada e melhorando o desempenho. Estas características facilitaram a implementação paralela, sendo que a versão serial é usada pelas threads da versão paralela.
 
 \subsection{Paralela}
 
@@ -80,6 +82,26 @@ No segundo estado, as \textit{worker threads} abrem o segundo nível, e também 
 Para efetuar a comparação entre as duas implementações, foi feito um pequeno benchmark consistente de 5 jogos pré estabelecidos onde o programa busca pelo próximo movimento que garante a vitória do jogador (checkmate). O programa vai aumentando a profundidade de execução até que essa jogada seja encontrada, medindo o tempo de execução do início da busca até o final, onde a jogada é encontrada.
 
 \subsection{Benchmarks}
+
+Selecionamos 4 casos (posicionamento de peças no tabuleiro) equivalentes a jogadas interessantes, isto é, que tenham um \textit{check} após algumas rodadas. Os algoritmos da tabela~\ref{tab1} foram executados com incremento de \textit{depth} até que o \textit{check} fosse encontrado.
+
+\begin{table}[h]
+	\label{tab1}
+	\centering
+	\caption{Resultados (Tempo em segundos)}
+	\label{my-label}
+	\begin{tabular}{|l|l|l|l|l|}
+		\hline
+		Algorítmo            & Benchmark 1 & Benchmark 2 & Benchmark 3 & Benchmark 4 \\ \hline
+		Min-Max Serial       & a           & a           & a           & a           \\ \hline
+		Alpha Beta Serial    & a           & a           & a           & a           \\ \hline
+		Alpha Beta O2 Serial & a           & a           & a           & a           \\ \hline
+		Alpha Beta O3 Serial & a           & a           & a           & a           \\ \hline
+		Paralelo 4 Threads   & a           & a           & a           & a           \\ \hline
+		Paralelo 8 Threads   & a           & a           & a           & a           \\ \hline
+		Xeon Phi             & a           & a           & a           & a           \\ \hline
+	\end{tabular}
+\end{table}
 
 AlphaBetaxMinMAx~\cite{chess2}
 alpha beta hard~\cite{chess1}
